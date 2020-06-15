@@ -1,0 +1,9 @@
+version: "3.4"
+services:
+  ubuntu1604:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    tty: true
+    volumes:
+      - .:/var/work
