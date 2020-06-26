@@ -18,10 +18,10 @@ function main() {
   rm -f boot/uefi-loader/loadvmm.efi
   rm -f boot/loader/bootloader boot/loader/bootloaderusb
 
-  echo "build..."
-  make
-  make -C boot/loader
-  make -C boot/uefi-loader
+#  echo "build..."
+#  make
+#  make -C boot/loader
+#  make -C boot/uefi-loader
 
 #  echo "fortmatting USB device..."
 #  sudo dd if=/dev/zero of=/dev/"$dev" bs=512 count=1

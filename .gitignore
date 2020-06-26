@@ -39,3 +39,5 @@ boot/uefi-loader/loadvmm.efi
 work
 tools/dbgsh-uefi/*.efi
 loadvmm.efi
+bootloader
+bootloaderusb
