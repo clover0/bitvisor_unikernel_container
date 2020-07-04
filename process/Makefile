@@ -1,6 +1,7 @@
 CFLAGS += -Iprocess/lib
 
-bins-1 += debug help init log panic recvexample sendexample sendint
+bins-1 += debug helpinit log panic recvexample sendexample sendint hello unikernelctl
+bins-1 += unikernel
 bins-1 += serialtest shell
 bins-$(CONFIG_IDMAN) += idman
 bins-$(CONFIG_STORAGE) += storage
@@ -27,3 +28,7 @@ vpn-objs = vpn.o
 vpn-libs = vpn/lib/$(outa) crypto/$(outa)
 echoctl-objs = echoctl.o
 monitor-objs = monitor.o
+hello-objs = hello.o
+unikernelctl-objs = unikernelctl.o
+unikernel-objs = unikernel.o
+unikernel-libs = unikernel/lib/$(outa)

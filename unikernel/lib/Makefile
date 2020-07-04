@@ -1,0 +1,3 @@
+CONSTANTS-$(CONFIG_ENABLE_ASSERT) += -DENABLE_ASSERT
+
+objs-1 += unikernel.o

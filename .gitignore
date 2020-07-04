@@ -1,3 +1,4 @@
+.hg
 *.d
 *.o
 *.bin
@@ -41,3 +42,5 @@ tools/dbgsh-uefi/*.efi
 loadvmm.efi
 bootloader
 bootloaderusb
+
+compile_commands.json

@@ -9,4 +9,6 @@ RUN apt-get -y update \
 
 WORKDIR /var/work
 
+USER 1000
+
 CMD /bin/bash
