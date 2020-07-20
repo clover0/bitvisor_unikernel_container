@@ -50,6 +50,7 @@ bobjs = $(bobjs-1:%=$(dir)%)
 objs = $(objs-1:%=$(dir)%) $(subouto) $(subouta) $(suboutp)
 deps = $(objs-1:%.o=$(dir)%.d) $(bobjs-1:%.o=$(dir)%.d)
 bins = $(bins-1:%=$(dir)%.bin)
+uklbins = $(unikernelbins:%=$(dir)%.bin)
 flags-data := CFLAGS=$(CFLAGS) ASFLAGS=$(ASFLAGS) LDFLAGS=$(LDFLAGS)
 depends-data := include $(deps)
 objects-data := $(objs) $(bobjs)
@@ -64,11 +65,32 @@ $(defouta) : $(objs) $(dir)$(depends)
 	$(RM) $(defouta)
 	$(AR) cr $(defouta) $(objs)
 
-$(defoutp) : $(bins) $(dir)$(depends) $(dir)$(objects)
+$(defoutp) : $(bins) $(uklbins) $(dir)$(depends) $(dir)$(objects)
+	echo "hello"
 	$(V-info) LD $(defoutp)
-	$(CC) $(ASFLAGS) $(LDFLAGS) -Wl,-r -o $(defoutp) $(bins:%=%.s)
+	echo $(defoutp)
+	echo $(CC) $(ASFLAGS) $(LDFLAGS) -Wl,-r -o $(defoutp) $(bins:%=%.s) $(uklbins:%=%.s)
+	$(CC) $(ASFLAGS) $(LDFLAGS) -Wl,-r -o $(defoutp) $(bins:%=%.s) $(uklbins:%=%.s)
+	echo "defoutp"
+
+$(uklbins) : $(bobjs) $(blibs-1) $(objs) $(dir)$(boptions)
+	cp process/kernel.elf process/kernel.bin
+	echo "uklbins"
+	#$(V-info) LD $@
+	#echo '.section .processes' > $@.s
+	#echo '.long prc_$(*F)_name, 0, prc_$(*F)_bin, 0' >> $@.s
+	#echo '.quad prc_$(*F)_bin_end - prc_$(*F)_bin' >> $@.s
+	#echo '.quad $($(*F)-stacksize)+0' >> $@.s
+	#echo '.data' >> $@.s
+	#echo 'prc_$(*F)_name: .string "$(*F)"' >> $@.s
+	#echo 'prc_$(*F)_bin: .incbin "$@"' >> $@.s
+	#echo 'prc_$(*F)_bin_end:' >> $@.s
+	#echo $(CC) $(LDFLAGS) -o $@ $($(*F)-uklobjs:%=$(dir)%)
+	#$(CC) $(LDFLAGS) -o $@ $($(*F)-uklobjs:%=$(dir)%)
+
 
 $(bins) : $(bobjs) $(blibs-1) $(objs) $(dir)$(boptions)
+	echo "bins"
 	$(V-info) LD $@
 	echo '.section .processes' > $@.s
 	echo '.long prc_$(*F)_name, 0, prc_$(*F)_bin, 0' >> $@.s
@@ -78,6 +100,8 @@ $(bins) : $(bobjs) $(blibs-1) $(objs) $(dir)$(boptions)
 	echo 'prc_$(*F)_name: .string "$(*F)"' >> $@.s
 	echo 'prc_$(*F)_bin: .incbin "$@"' >> $@.s
 	echo 'prc_$(*F)_bin_end:' >> $@.s
+	echo $(CC) $(LDFLAGS) -o $@ $($(*F)-objs:%=$(dir)%) \
+        		$($(*F)-libs) $(objs)
 	$(CC) $(LDFLAGS) -o $@ $($(*F)-objs:%=$(dir)%) \
 		$($(*F)-libs) $(objs)
 
