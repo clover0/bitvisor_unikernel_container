@@ -1,6 +1,6 @@
 version: "3.4"
 services:
-  ubuntu1604:
+  ubuntu1804:
     build:
       context: .
       dockerfile: Dockerfile

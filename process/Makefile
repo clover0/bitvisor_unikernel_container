@@ -13,7 +13,7 @@ bins-$(CONFIG_PCI_MONITOR) += monitor
 
 unikernelbins =
 #unikernelbins += osv
-unikernelbins += kernel
+# unikernelbins += kernel
 
 debug-objs = debug.o
 help-objs = help.o
