@@ -997,6 +997,31 @@ ret:
 		return 0;
 }
 
+/* internal use */
+static int
+_iopl (int level)
+{
+	printf ("call iopl internal\n");
+	return 0;
+}
+
+/* for kernel */
+int
+iopl (int level)
+{
+	printf ("call iopl for kernel\n");
+	return _iopl(level);
+
+}
+
+ulong
+sys_iopl (ulong ip, ulong sp, ulong num, ulong si, ulong di)
+{
+	printf ("sys iopl\n");
+	printf ("arg %d\n", si);
+	return _iopl((int)si);
+}
+
 static syscall_func_t syscall_table[NUM_OF_SYSCALLS] = {
 	NULL,			/* 0 */
 	sys_nop,
@@ -1013,6 +1038,7 @@ static syscall_func_t syscall_table[NUM_OF_SYSCALLS] = {
 	sys_msgunregister,
 	sys_exitprocess,
 	sys_setlimit,
+	sys_iopl,
 };
 
 __attribute__ ((regparm (1))) void

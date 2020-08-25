@@ -33,12 +33,14 @@ function main() {
 
   echo "install uefi to USB"
   mkdir -p /tmp/mnt
-  sudo diskutil mount -mountPoint /tmp/mnt /dev/"$part" 
+  diskutil unmount /dev/"$part"
+  sudo diskutil mount -mountPoint /tmp/mnt /dev/"$part"
   sudo mkdir -p /tmp/mnt/EFI/BOOT
   sudo cp ./boot/uefi-loader/loadvmm.efi /tmp/mnt/EFI/BOOT/BOOTX64.EFI
   sudo cp ./bitvisor.elf /tmp/mnt/EFI/BOOT/BITVISOR.ELF
-  diskutil unmount /dev/"$part"
-  rmdir /tmp/mnt
+  sync -f /tmp/mnt/EFI/BOOT/BOOTX64.EFI
+  diskutil unmount /tmp/mnt 
+  rmdir -rf /tmp/mnt
   echo "finish install."
 
 }

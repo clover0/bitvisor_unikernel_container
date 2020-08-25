@@ -78,7 +78,14 @@ int _start(int a1, int a2)
 	// syscall_example();
 	// vmcall_example();
 	// int_example();
-	io_cmos_example();
+	// io_cmos_example();
+	iopl_example();
 	exitprocess(0);
 	return 0;
+}
+
+void iopl_example()
+{
+	printf("iopl start\n");
+	iopl(3);
 }

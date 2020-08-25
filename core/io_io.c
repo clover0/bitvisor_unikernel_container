@@ -95,4 +95,6 @@ call_io (enum iotype type, u32 port, void *data)
 	return current->vcpu0->io.iofunc[port] (type, port, data);
 }
 
+
+
 INITFUNC ("vcpu0", io_io_init);

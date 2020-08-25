@@ -73,3 +73,4 @@ int msgsendbuf (int desc, int data, struct msgbuf *buf, int bufcnt);
 int msgunregister (int desc);
 void exitprocess (int retval);
 int setlimit (int stacksize, int maxstacksize);
+int iopl(int level);
