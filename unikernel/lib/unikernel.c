@@ -4,14 +4,16 @@
 static int desc;
 
 static int
-unikernel_msgehandler(int m, int c, struct msgbuf *buf, int bufcnt)
+unikernel_msghandler(int m, int c, struct msgbuf *buf, int bufcnt)
 {
-    if (m != MSG_BUF)
-        return -1;
-    return -1;
+    // if (m != MSG_BUF)
+        // return -1;
+    printf("handle ukl");
+    return 0;
 }
 
 void unikernel_user_init()
 {
-    desc = msgregister("unikernel", unikernel_msgehandler);
+    printf("init unikernel user");
+    desc = msgregister("unikernel", unikernel_msghandler);
 }
