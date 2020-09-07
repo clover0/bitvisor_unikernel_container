@@ -49,6 +49,9 @@
 #define NUM_OF_SYSCALLS 32
 #define NAMELEN 16
 #define MAX_MSGLEN 16384
+// TODO:
+#define X86_EFLAGS_IOPL_BIT	12 /* I/O Privilege Level (2 bits) */
+#define X86_EFLAGS_IOPL (3 << X86_EFLAGS_IOPL_BIT)
 
 typedef ulong (*syscall_func_t) (ulong ip, ulong sp, ulong num, ulong si,
 				 ulong di);
@@ -1002,6 +1005,39 @@ static int
 _iopl (int level)
 {
 	printf ("call iopl internal\n");
+	unsigned long reg;
+	unsigned long iopl;
+
+	iopl = level << X86_EFLAGS_IOPL_BIT;
+	
+	unsigned long beforeEflags, afterEflags;
+	asm volatile("pushfq;"
+				 "pop %0;"
+				 : "=r"(beforeEflags)
+			);
+	printf("eflags: %08lX\n", beforeEflags);
+	asm volatile("pushfq;"
+				 "pop %0;"
+				 "and %1, %0;"
+				 "or %2, %0;"
+				 "push %0;"
+				 "popfq"
+				 : "=&r"(reg)
+				 : "i"(~X86_EFLAGS_IOPL), "r"(iopl));
+	asm volatile("pushfq;"
+				 "pop %0;"
+				 : "=r"(afterEflags)
+			);
+	printf("eflags after: %08lX\n", afterEflags);
+
+	unsigned short int cs;
+	asm volatile("mov %%cs,%0"
+				 : "=r"(cs));
+	printf("CS register: %d\n", cs);
+	
+	currentcpu->tss32.eflags = afterEflags;
+
+	printf ("finish iopl update field\n");
 	return 0;
 }
 
@@ -1018,7 +1054,7 @@ ulong
 sys_iopl (ulong ip, ulong sp, ulong num, ulong si, ulong di)
 {
 	printf ("sys iopl\n");
-	printf ("arg %d\n", si);
+	printf ("arg %lu\n", (unsigned long)si);
 	return _iopl((int)si);
 }
 
@@ -1044,11 +1080,16 @@ static syscall_func_t syscall_table[NUM_OF_SYSCALLS] = {
 __attribute__ ((regparm (1))) void
 process_syscall (struct syscall_regs *regs)
 {
+	// unsigned long flags;
 	if (regs->rbx < NUM_OF_SYSCALLS && syscall_table[regs->rbx]) {
 		regs->rax = syscall_table[regs->rbx] (regs->rdx, regs->rcx,
 						      regs->rbx, regs->rsi,
 						      regs->rdi);
 		set_process64_msrs_if_necessary ();
+		// asm volatile("pushfq;"
+				//  "pop %%r11;"::
+			// );
+		// printf("eflags in process syscall after: %08lX\n", flags);
 		return;
 	}
 	printf ("Bad system call.\n");

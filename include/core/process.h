@@ -69,5 +69,6 @@ int msgsendbuf (int desc, int data, struct msgbuf *buf, int bufcnt);
 int msgunregister (int desc);
 void exitprocess (int retval);
 long msgpremapbuf (int desc, struct msgbuf *buf);
+int iopl (int level);
 
 #endif
