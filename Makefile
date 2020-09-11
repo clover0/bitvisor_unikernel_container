@@ -22,6 +22,7 @@ subdirs-$(CONFIG_VPN) += vpn
 subdirs-$(CONFIG_IDMAN) += idman
 subdirs-1 += net
 subdirs-1 += unikernel
+subdirs-1 += fs
 subdirs-$(CONFIG_IP) += ip
 asubdirs-$(CONFIG_CRYPTO) += crypto
 psubdirs-1 += process
