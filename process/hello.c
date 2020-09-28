@@ -2,10 +2,12 @@
 #include <lib_printf.h>
 #include <lib_string.h>
 #include <lib_syscalls.h>
+#include <lib_storage_io.h>
 
 char hello[] = "hello!!";
 
 void int_example()
+
 {
 	unsigned int ret = 5;
 	__asm__ __volatile__("mov $1,  %%eax;" //システムコール番号
@@ -119,7 +121,26 @@ void iopl_example()
 				 "pop %0;"
 				 : "=r"(flags));
 	printf("eflags after in user: %08lX\n", flags);
+}
 
+void tmp_callback(void *data, long long size)
+{
+	printf("hello tmp callback\n");
+}
+
+void disk_io_example()
+{
+	int retval, num, id, getsitzeret;
+	void *data;
+
+	retval = storage_io_init();
+	printf("retval: %d\n", retval);
+	id = 1;
+	num = storage_io_get_num_devices(id);
+	printf("storag get num devices: %d\n", num);
+
+	getsitzeret = storage_io_aget_size(id, 8, tmp_callback, data);
+	printf("storage_io_aget_size: %d\n", getsitzeret);
 }
 
 int _start(int a1, int a2)
@@ -129,7 +150,9 @@ int _start(int a1, int a2)
 	// vmcall_example();
 	// int_example();
 	// iopl_example();
-	io_cmos_example();
+	// io_cmos_example();
+	// disk_io_example();
+
 	exitprocess(0);
 	return 0;
 }
