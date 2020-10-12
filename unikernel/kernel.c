@@ -8,6 +8,7 @@ unikernel_init(void) {
     int d, d1, uctld;
 
     d = newprocess("unikernel");
+    printf("newprocess unikernle\n");
     if (d < 0)
         panic("new process unikernel");
     d1 = msgopen("ttyout");
@@ -17,7 +18,7 @@ unikernel_init(void) {
     msgsenddesc(d, d1);
     msgsenddesc(d, d1);
     msgclose(d1);
-    msgsendint(d, 0);
+    msgsendint(d, 0); // start process/unikernel.bin
     msgclose(d);
 
 //    uctld = msgopen("unikernelctl");

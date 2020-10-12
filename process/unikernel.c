@@ -12,7 +12,7 @@ _start (int a1, int a2)
 
     if (a1 != MSG_INT)
         exitprocess(1);
-    printf("hello unikernel\n");
+    printf("hello unikernel before user init\n");
     unikernel_user_init();
     printf("unikernel init!\n");
 //    exitprocess (0);

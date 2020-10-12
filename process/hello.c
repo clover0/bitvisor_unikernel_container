@@ -18,19 +18,31 @@ void int_example()
 	printf("int example ret: %d\n", ret);
 	return;
 }
-void out__b(unsigned short int port, unsigned char data){
-	unsigned long flags;
-	asm volatile("pushfq;"
-				 "pop %0;"
-				 : "=r"(flags));
-	printf("eflags after in user out__b: %08lX\n", flags);
+void out__b(unsigned short int port, unsigned char data)
+{
 	asm volatile("outb %0,%1" ::"a"(data), "Nd"(port));
-	printf("done outb\n");
 }
 
-unsigned char in__b(unsigned short int port){
+void out__l(unsigned short int port, unsigned char data)
+{
+	asm volatile("out %0,%1" ::"a"(data), "Nd"(port));
+}
+
+unsigned char in__b(unsigned short int port)
+{
 	unsigned char ret;
-	asm volatile("inb %1,%0;":"=a"(ret):"Nd"(port));
+	asm volatile("inb %1,%0;"
+				 : "=a"(ret)
+				 : "Nd"(port));
+	return ret;
+}
+
+unsigned char in__l(unsigned short int port)
+{
+	unsigned char ret;
+	asm volatile("in %1,%0;"
+				 : "=a"(ret)
+				 : "Nd"(port));
 	return ret;
 }
 
@@ -66,7 +78,7 @@ void io_cmos_example()
 	ret = in__b(data);
 	// asm volatile ("outb %0,%1" :: "a"(data), "Nd"(port));
 	// asm volatile("inb %1,%0;":"=a"(ret):"Nd"(data));
-	printf("ret: %c, %08d\n", ret,ret);
+	printf("ret: %c, %08d\n", ret, ret);
 	printf("success I/O port \n");
 
 	return;
