@@ -7,7 +7,7 @@
 *.flags
 *.objects
 *.a
-.defconfg
+# .defconfg
 .config
 *~
 process/process_builtin.s
