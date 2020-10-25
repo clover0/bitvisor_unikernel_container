@@ -1,4 +1,6 @@
 #include <core/process.h>
+#include <core/thread.h>
+#include <core/time.h>
 
 static int desc;
 
@@ -118,8 +120,23 @@ unikernel_msghandler(int m, int c, struct msgbuf *buf, int bufcnt)
 	return 0;
 }
 
+// void unikernel_thread()
+// {
+// 	int time;
+// 	for(;;){
+// 		if (time - get_time() > 5000){
+// 			printf("ukltd!");
+// 		}
+// 		time = get_time();
+// 		schedule ();
+// 	}
+// }
+
 void unikernel_user_init()
 {
+	int tid;
 	printf("init unikernel user\n");
 	desc = msgregister("unikernel", unikernel_msghandler);
+	// tid = thread_new(unikernel_thread, NULL, 4096 * 8);
+	
 }
