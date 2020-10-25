@@ -8,17 +8,17 @@
 *.objects
 *.a
 # .defconfg
-.config
+# .config
 *~
 process/process_builtin.s
 bitvisor.elf
 bitvisor.map
-.config*
+# .config*
 .depends
 .flags
 .objects
 .boptions
-defconfig
+# defconfig
 boot/login/conf/bitvisor.conf
 boot/login/initrd/initrd.gz
 boot/login/linux/linux-*
