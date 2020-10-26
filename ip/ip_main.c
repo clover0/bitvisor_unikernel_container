@@ -58,9 +58,10 @@
 #include "lwip/init.h"
 #include "lwip/dhcp.h"
 #include "lwip/tcpip.h"
-#include "lwip/autoip.h"
+#include "lwip/autoip.h"	
 #include "lwip/opt.h"
 #include "lwip/tcp.h"
+#include "lwip/apps/httpd.h"
 #include "lwip/timeouts.h"
 #include "netif/etharp.h"
 #include "net_main.h"
@@ -258,6 +259,9 @@ ip_main_init (struct ip_main_netif *netif_arg, int netif_num)
 {
 	/* Initialize TCP/IP Stack. */
 	lwip_init ();
+
+	/* Initialize HTTP */
+	httpd_init();
 
 	/* Allocate context. */
 	tcpip_context = mem_malloc (sizeof *tcpip_context);
