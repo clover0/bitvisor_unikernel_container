@@ -47,6 +47,8 @@ typedef unsigned long ulong;
 #define SYS_SETLIMIT		14
 #define SYS_IOPL			15
 
+#define BV_YIELD			16
+
 #ifdef __x86_64__
 #	define DOSYSCALL0(rb, ra) asm volatile \
 		("call *%1" : "=a" (ra) \
@@ -204,4 +206,13 @@ iopl (int level)
 
 	DOSYSCALL1 (SYS_IOPL, level, tmp);
 	return (int)tmp;
+}
+
+void
+bv_yield(void)
+{
+	ulong tmp;
+
+	DOSYSCALL0 (BV_YIELD, tmp);
+	return;
 }

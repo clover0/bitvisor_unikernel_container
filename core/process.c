@@ -1058,6 +1058,18 @@ sys_iopl (ulong ip, ulong sp, ulong num, ulong si, ulong di)
 	return _iopl((int)si);
 }
 
+static int
+yield(void){
+	schedule();
+	return 0;
+}
+
+ulong
+bv_yield (ulong ip, ulong sp, ulong num, ulong si, ulong di)
+{
+	return yield();
+}
+
 static syscall_func_t syscall_table[NUM_OF_SYSCALLS] = {
 	NULL,			/* 0 */
 	sys_nop,
@@ -1074,22 +1086,18 @@ static syscall_func_t syscall_table[NUM_OF_SYSCALLS] = {
 	sys_msgunregister,
 	sys_exitprocess,
 	sys_setlimit,
-	sys_iopl,
+	sys_iopl,            /* 15 */
+	bv_yield,
 };
 
 __attribute__ ((regparm (1))) void
 process_syscall (struct syscall_regs *regs)
 {
-	// unsigned long flags;
 	if (regs->rbx < NUM_OF_SYSCALLS && syscall_table[regs->rbx]) {
 		regs->rax = syscall_table[regs->rbx] (regs->rdx, regs->rcx,
 						      regs->rbx, regs->rsi,
 						      regs->rdi);
 		set_process64_msrs_if_necessary ();
-		// asm volatile("pushfq;"
-				//  "pop %%r11;"::
-			// );
-		// printf("eflags in process syscall after: %08lX\n", flags);
 		return;
 	}
 	printf ("Bad system call.\n");

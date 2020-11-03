@@ -98,45 +98,43 @@ unikernel_msghandler(int m, int c, struct msgbuf *buf, int bufcnt)
 	int id = 0;
 
 	unsigned short int cs;
-	asm volatile("mov %%cs,%0"
-				 : "=r"(cs));
-	current_priv_level();
-	current_eflags();
 
-	iopl(3);
-	out__b(select, r_min | no_nmi);
-	ret = in__b(data);
-	// printf("cmos min: %d\n", ret);
-	printf("cmos min x: %x\n", ret);
+	printf("receive m:%d c:%d in lib ukl\n", m, c);
+	switch (c)
+	{
+	case 1:
+		asm volatile("mov %%cs,%0"
+					 : "=r"(cs));
+		current_priv_level();
+		current_eflags();
 
-	// check virtio device
-	// id = PCICheckVendor(2, 0); // pro1000
-	// id = PCICheckVendor(0, 1); // virtual device
-	id = PCICheckVendor(3, 0);
-	// virtio(redhat)であるはず -> 素のNICが見えてしまった
-	printf("vendor %x\n", id);
+		iopl(3);
+		out__b(select, r_min | no_nmi);
+		ret = in__b(data);
+		// printf("cmos min: %d\n", ret);
+		printf("cmos min x: %x\n", ret);
+
+		// check virtio device
+		// id = PCICheckVendor(2, 0); // pro1000
+		// id = PCICheckVendor(0, 1); // virtual device
+		id = PCICheckVendor(3, 0);
+		// virtio(redhat)であるはず -> 素のNICが見えてしまった
+		printf("vendor %x\n", id);
+		break;
+	case 2:
+		printf("hello 2\n");
+		break;
+	default:
+		break;
+	}
 
 	printf("finish handling ukl\n");
 	return 0;
 }
-
-// void unikernel_thread()
-// {
-// 	int time;
-// 	for(;;){
-// 		if (time - get_time() > 5000){
-// 			printf("ukltd!");
-// 		}
-// 		time = get_time();
-// 		schedule ();
-// 	}
-// }
 
 void unikernel_user_init()
 {
 	int tid;
 	printf("init unikernel user\n");
 	desc = msgregister("unikernel", unikernel_msghandler);
-	// tid = thread_new(unikernel_thread, NULL, 4096 * 8);
-	
 }

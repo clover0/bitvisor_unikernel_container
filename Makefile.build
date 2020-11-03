@@ -48,9 +48,11 @@ bstacksize-1-g := $(foreach i,$(bstacksize-1-name),$($(i)).)
 bstacksize-1 := $(bstacksize-1-$(m))
 bobjs = $(bobjs-1:%=$(dir)%)
 objs = $(objs-1:%=$(dir)%) $(subouto) $(subouta) $(suboutp)
+extappobjsobjs = $(extappobjs:%=$(dir)%)
 deps = $(objs-1:%.o=$(dir)%.d) $(bobjs-1:%.o=$(dir)%.d)
 bins = $(bins-1:%=$(dir)%.bin)
 uklbins = $(unikernelbins:%=$(dir)%.bin)
+extappbins = $(extappbins-1:%=$(dir)%.bin)
 flags-data := CFLAGS=$(CFLAGS) ASFLAGS=$(ASFLAGS) LDFLAGS=$(LDFLAGS)
 depends-data := include $(deps)
 objects-data := $(objs) $(bobjs)
@@ -65,12 +67,11 @@ $(defouta) : $(objs) $(dir)$(depends)
 	$(RM) $(defouta)
 	$(AR) cr $(defouta) $(objs)
 
-$(defoutp) : $(bins) $(uklbins) $(dir)$(depends) $(dir)$(objects)
-	echo "hello"
+$(defoutp) : $(bins) $(uklbins) $(extappbins) $(dir)$(depends) $(dir)$(objects)
 	$(V-info) LD $(defoutp)
 	echo $(defoutp)
-	echo $(CC) $(ASFLAGS) $(LDFLAGS) -Wl,-r -o $(defoutp) $(bins:%=%.s) $(uklbins:%=%.s)
-	$(CC) $(ASFLAGS) $(LDFLAGS) -Wl,-r -o $(defoutp) $(bins:%=%.s) $(uklbins:%=%.s)
+	echo $(CC) $(ASFLAGS) $(LDFLAGS) -Wl,-r -o $(defoutp) $(bins:%=%.s) $(uklbins:%=%.s) $(extappbins:%=%.s)
+	$(CC) $(ASFLAGS) $(LDFLAGS) -Wl,-r -o $(defoutp) $(bins:%=%.s) $(uklbins:%=%.s) $(extappbins:%=%.s)
 	echo "defoutp"
 
 $(uklbins) : $(bobjs) $(blibs-1) $(objs) $(dir)$(boptions)
@@ -88,6 +89,21 @@ $(uklbins) : $(bobjs) $(blibs-1) $(objs) $(dir)$(boptions)
 	#echo $(CC) $(LDFLAGS) -o $@ $($(*F)-uklobjs:%=$(dir)%)
 	#$(CC) $(LDFLAGS) -o $@ $($(*F)-uklobjs:%=$(dir)%)
 
+# .binを.oからライブラリとリンクさせてつくる
+$(extappbins) : $(extappobjsobjs)
+	#cp process/ext_app.o process/ext_app.bin
+	echo "extappbins"
+	$(V-info) LD $@
+	echo '.section .processes' > $@.s
+	echo '.long prc_$(*F)_name, 0, prc_$(*F)_bin, 0' >> $@.s
+	echo '.quad prc_$(*F)_bin_end - prc_$(*F)_bin' >> $@.s
+	echo '.quad $($(*F)-stacksize)+0' >> $@.s
+	echo '.data' >> $@.s
+	echo 'prc_$(*F)_name: .string "$(*F)"' >> $@.s
+	echo 'prc_$(*F)_bin: .incbin "$@"' >> $@.s
+	echo 'prc_$(*F)_bin_end:' >> $@.s
+	echo $(CC) $(LDFLAGS) -o $@ $(extappobjs:%=$(dir)%) $($(*F)-libs) $(objs)
+	$(CC) $(LDFLAGS) -o $@ $(extappobjs:%=$(dir)%) $($(*F)-libs) $(objs)
 
 $(bins) : $(bobjs) $(blibs-1) $(objs) $(dir)$(boptions)
 	echo "bins"
@@ -161,6 +177,7 @@ $(subouto_p) $(subouta_p) $(suboutp_p) :
 .SUFFIXES :
 .SUFFIXES : .c .s .o .bin
 
+# objectファイルと.dファイルを作る
 .c.o :
 	$(V-info) CC $@
 	$(CC) $(CFLAGS) -MD -c -o $@ $< && \

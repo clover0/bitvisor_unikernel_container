@@ -74,3 +74,4 @@ int msgunregister (int desc);
 void exitprocess (int retval);
 int setlimit (int stacksize, int maxstacksize);
 int iopl(int level);
+void bv_yield(void);

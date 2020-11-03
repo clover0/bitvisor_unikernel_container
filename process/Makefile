@@ -15,6 +15,8 @@ unikernelbins =
 #unikernelbins += osv
 # unikernelbins += kernel
 
+extappbins-1 = ext_app
+
 debug-objs = debug.o
 help-objs = help.o
 idman-objs = idman.o
@@ -34,6 +36,7 @@ vpn-libs = vpn/lib/$(outa) crypto/$(outa)
 echoctl-objs = echoctl.o
 monitor-objs = monitor.o
 hello-objs = hello.o
+extappobjs = ext_app.o
 unikernelctl-objs = unikernelctl.o
 #osv-objs = osv.o
 unikernel-objs = unikernel.o
