@@ -1123,8 +1123,8 @@ mmhandler2 (struct data *d1, struct data2 *d2, phys_t gphys, bool wr,
 	if (rangecheck (gphys - d1->mapaddr, len, 0x5008, 4)) {
 		/* Receive Filter Control Register */
 		if (wr) {
-			printf ("receive filter 0x%X (EXSTEN=%d)\n",
-				buf->dword, !!(buf->dword & 0x8000));
+			// printf ("receive filter 0x%X (EXSTEN=%d)\n",
+				// buf->dword, !!(buf->dword & 0x8000));
 			d2->rfctl = buf->dword;
 			*(u32 *)(void *)((u8 *)d1->map + 0x5008) =
 				d2->rfctl & ~0x8000;
@@ -1136,8 +1136,8 @@ mmhandler2 (struct data *d1, struct data2 *d2, phys_t gphys, bool wr,
 	if (rangecheck (gphys - d1->mapaddr, len, 0x100, 4)) {
 		/* Receive Control Register */
 		if (wr) {
-			printf ("receive control 0x%X (DTYP=%d)\n",
-				buf->dword, (buf->dword & 0x0C00) >> 10);
+			// printf ("receive control 0x%X (DTYP=%d)\n",
+				// buf->dword, (buf->dword & 0x0C00) >> 10);
 			d2->rctl = buf->dword;
 			*(u32 *)(void *)((u8 *)d1->map + 0x100) =
 				(d2->rctl & ~0x2030000) |

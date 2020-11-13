@@ -1145,14 +1145,14 @@ rtl8169_hook_write(RTL8169_SUB_CTX *sctx, phys_t offset, UINT data, UINT len)
 		rtl8169_write(sctx, RTL8169_REG_TNPDS, ctx->TNPDSphys, 4);
 		ctx->sendindex = 0;
 		ctx->enableflag |= 1;
-		printf ("TNPDS\n");
+		// printf ("TNPDS\n");
 		bret = true;
 	}
 	else if (offset == RTL8169_REG_THPDS) {
 		memcpy (&ctx->THPDSreg, &data, len);
 		rtl8169_write(sctx, RTL8169_REG_THPDS, ctx->THPDSphys, 4);
 		ctx->enableflag |= 1;
-		printf ("THPDS\n");
+		// printf ("THPDS\n");
 		bret = true;
 	}
 	else if (offset == RTL8169_REG_RDSAR) {
@@ -1160,7 +1160,7 @@ rtl8169_hook_write(RTL8169_SUB_CTX *sctx, phys_t offset, UINT data, UINT len)
 		rtl8169_write(sctx, RTL8169_REG_RDSAR, ctx->RDSARphys, 4);
 		ctx->RxDescNum = 0;
 		ctx->enableflag |= 2;
-		printf ("RDSAR\n");
+		// printf ("RDSAR\n");
 		bret = true;
 	}
 	else //それ以外のレジスタアクセス
