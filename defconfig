@@ -81,9 +81,9 @@ struct config_data config = {
 	},
 	.ip = {
 		.use_dhcp = 1, // changed
-		// .ipaddr = {192,168,12,111}, // changed
-		// .netmask = {255,255,255,0}, // changed
-		// .gateway = {192,168,12.254},
+		.ipaddr = {192,168,12,111}, // changed
+		.netmask = {255,255,255,0}, // changed
+		.gateway = {192,168,12.254},
 	},
 	.storage = {
 		.keys[0] = {
@@ -154,7 +154,11 @@ struct config_data config = {
 			// .ata = 1, // net=ip,ippass NICをbitvisorが占有、ゲストに見せる
 			// rtl8196はvirtioの仮想デバイス化は使えない
 			// .pci = "device=pro1000, driver=pro1000, virtio=1, net=ippass, tty=1,"
+			
+			// 研究室マシン
 			.pci = "device=pro1000, driver=pro1000, net=ippass, tty=0"
+
+			// 自宅notePCの設定 realteck はippassうまく動かない
 			// .pci = "device=rtl8169, driver=rtl8169, net=ippass, tty=0"
 			// "and, slot=03:00.0, driver=conceal" // 自宅ではwifi
 
