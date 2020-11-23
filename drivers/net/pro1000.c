@@ -350,7 +350,6 @@ send_physnic_sub (struct data2 *d2, UINT num_packets, void **packets,
 				printf ("transmit packet too large\n");
 			continue;
 		}
-		printf("send_physnic_sub packet size: %d \n", (int) packet_sizes[i]);
 		memcpy (s->u.t.tbuf[t], packets[i], packet_sizes[i]);
 		td = &s->u.t.td[t];
 		td->len = packet_sizes[i];
