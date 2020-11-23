@@ -34,6 +34,7 @@
 #include <core/panic.h>
 #include <core/string.h>
 #include <core/tty.h>
+#include <core/container.h>
 #include <net/netapi.h>
 
 struct netdata {
@@ -42,6 +43,8 @@ struct netdata {
 	bool tty;
 	void *tty_phys_handle;
 	struct nicfunc *tty_phys_func;
+	void *container_phys_handle;
+	struct nicfunc *container_phys_func;
 	unsigned char mac_address[6];
 };
 
@@ -227,6 +230,33 @@ net_tty_send (void *tty_handle, void *packet, unsigned int packet_size)
 				     &packet_size, false);
 }
 
+static void
+net_container_send(void *containernet_handle, void *packet, unsigned int packet_size) {
+	char mac_address[6] = {
+		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+	// char mac_address[6] = {
+		// 0x22, 0x22, 0x22, 0x22, 0x22, 0x22};
+
+	struct netdata *handle = containernet_handle;
+	char *pkt;
+
+	pkt = packet;
+	memcpy(pkt + 0, mac_address, 6);
+	printf("handle macaddress: %x:%x:%x:%x:%x:%x\n", 
+	handle->mac_address[0],handle->mac_address[1],handle->mac_address[2],
+	handle->mac_address[3],handle->mac_address[4],handle->mac_address[5]);
+
+	memcpy(pkt + 6, handle->mac_address, 6);
+	printf("\nnet_container_send(packet size %d): \n", packet_size);
+	for (int i = 0; i < packet_size; i++) {
+		printf("%02X:", pkt[i]);
+		if (i % 10 == 0)
+			printf("\n");
+	}
+	handle->container_phys_func->send(handle->container_phys_handle, 1, &packet,
+									  &packet_size, false);
+}
+
 bool
 net_init (struct netdata *handle, void *phys_handle, struct nicfunc *phys_func,
 	  void *virt_handle, struct nicfunc *virt_func)
@@ -238,6 +268,9 @@ net_init (struct netdata *handle, void *phys_handle, struct nicfunc *phys_func,
 		handle->tty_phys_handle = phys_handle;
 		handle->tty_phys_func = phys_func;
 	}
+	// for container
+	handle->container_phys_handle = phys_handle;
+	handle->container_phys_func = phys_func;
 	return true;
 }
 
@@ -253,6 +286,10 @@ net_start (struct netdata *handle)
 			sizeof handle->mac_address);
 		tty_udp_register (net_tty_send, handle);
 	}
+
+	// for container
+	containernet_register(net_container_send, handle);
+
 	handle->func->start (handle->handle);
 }
 

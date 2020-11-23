@@ -24,7 +24,6 @@ $(SED) -n -e 's/.*: *//' -e '/^ *$$/d' -e :a -e '/\\$$/{N' -e ba -e '}' \
 install/%.o: %.o %.d
 	cp $*.o ../process/$*.o
 	cp $*.d ../process/$*.d
-	cp bv_calls.h ../process
 
 clean:
 	$(RM) -f *.o

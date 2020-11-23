@@ -45,6 +45,8 @@
 #include "spinlock.h"
 #include "string.h"
 #include "types.h"
+#include "container.h"
+#include "arith.h"
 
 #define NUM_OF_SYSCALLS 32
 #define NAMELEN 16
@@ -1070,6 +1072,116 @@ bv_yield (ulong ip, ulong sp, ulong num, ulong si, ulong di)
 	return yield();
 }
 
+static void
+wshort (char *off, unsigned short x)
+{
+	off[0] = (x >> 8);
+	off[1] = x;
+}
+
+// for check
+static int
+mkudp (char *buf, char *src, int sport, char *dst, int dport,
+       char *data, int datalen)
+{
+	u16 sum;
+
+	// IPv4 ヘッダ
+	/* TTL=64 */
+	memcpy (buf, "\x45\x00\x00\x00\x00\x01\x00\x00\x40\x11\x00\x00", 12);
+	wshort (buf + 2,  datalen + 8 + 20);
+	memcpy (buf + 12, src, 4);
+	memcpy (buf + 16, dst, 4);
+
+	// UDPヘッダ
+	wshort (buf + 20, sport);
+	wshort (buf + 22, dport);
+	wshort (buf + 24, datalen + 8);
+	memcpy (buf + 26, "\x00\x11", 2); // check sum 
+	memcpy (buf + 28, data, datalen); // UDP data
+
+	sum = ~ipchecksum (buf + 12, datalen + 16);
+	memcpy (buf + 26, &sum, 2);
+	sum = ipchecksum (buf + 24, 4);
+	memcpy (buf + 26, &sum, 2);
+	sum = ipchecksum (buf, 20);
+	memcpy (buf + 10, &sum, 2);
+	return datalen + 8 + 20;
+}
+
+static char tmpbuffs[10];
+static int
+_net_write(char *buf, int size)
+{
+	printf("bv write buf: %s\n", buf);
+	printf("bv write buf size: %d\n", size);
+
+	int ret_size = 0;
+	unsigned int pktsiz = 0;
+	char pkt[64 + 80 + 9];
+	char src_ip[4] = {192,168,0,196};
+	char dst_ip[4] = {192,168,0,187};
+	int len = 0;
+
+	// ここからbvのlwipに向かわせる
+	// またはNIC?
+	for (int i=0; i< sizeof tmpbuffs;i++){
+		tmpbuffs[i] = *buf;
+		buf++;
+	}
+	
+	ret_size = sizeof tmpbuffs;
+
+	// net側を操作したい
+	// 1. とりあえずここでパケットつくる
+	// 2. パケットをNICに送りたい
+	
+	memcpy (pkt + 12, "\x08\x00", 2);
+	pktsiz = mkudp (pkt + 14,
+				(char *)src_ip, 514,
+				(char *)dst_ip, 12049,
+				tmpbuffs, len) + 14;
+	containernet_write(pkt, pktsiz);
+	printf("finish write packet\n");
+
+	return ret_size;
+}
+
+static int
+_net_read(char *buf, int size)
+{
+	printf("bv read buf: %s\n", buf);
+	printf("bv read buf size: %d\n", size);
+
+	int ret_size = 0;
+
+	ret_size = sizeof tmpbuffs;
+	printf("tmpbuf: %s\n", tmpbuffs);
+	memcpy(buf, tmpbuffs, 9);
+	// buf = tmpbuffs;
+	printf("returning buf: %s\n", buf);
+
+	return ret_size;
+}
+
+ulong
+bv_net_write (ulong ip, ulong sp, ulong num, ulong si, ulong di)
+{	
+	char *buf = (char *)si;
+	int size = (int) di;
+
+	return _net_write(buf, size);
+}
+
+ulong
+bv_net_read (ulong ip, ulong sp, ulong num, ulong si, ulong di)
+{
+	char *buf = (char *)si;
+	int size = (int) di;
+
+	return _net_read(buf, size);
+}
+
 static syscall_func_t syscall_table[NUM_OF_SYSCALLS] = {
 	NULL,			/* 0 */
 	sys_nop,
@@ -1088,6 +1200,8 @@ static syscall_func_t syscall_table[NUM_OF_SYSCALLS] = {
 	sys_setlimit,
 	sys_iopl,            /* 15 */
 	bv_yield,
+	bv_net_write,
+	bv_net_read,
 };
 
 __attribute__ ((regparm (1))) void

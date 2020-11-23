@@ -7,6 +7,7 @@
 *.flags
 *.objects
 *.a
+*.out
 # .defconfg
 # .config
 *~
@@ -46,3 +47,4 @@ bootloaderusb
 compile_commands.json
 build
 .history
+*.dump

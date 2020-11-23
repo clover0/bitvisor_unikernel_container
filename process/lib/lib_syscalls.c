@@ -48,6 +48,8 @@ typedef unsigned long ulong;
 #define SYS_IOPL			15
 
 #define BV_YIELD			16
+#define BV_NET_WRITE		17
+#define BV_NET_READ			18
 
 #ifdef __x86_64__
 #	define DOSYSCALL0(rb, ra) asm volatile \
@@ -215,4 +217,22 @@ bv_yield(void)
 
 	DOSYSCALL0 (BV_YIELD, tmp);
 	return;
+}
+
+int
+bv_net_write (char *buf, int size)
+{
+	ulong tmp;
+
+	DOSYSCALL2 (BV_NET_WRITE, buf, size, tmp);
+	return (int)tmp;
+}
+
+int
+bv_net_read (char *buf, int size)
+{
+	ulong tmp;
+
+	DOSYSCALL2 (BV_NET_READ, buf, size, tmp);
+	return (int)tmp;
 }

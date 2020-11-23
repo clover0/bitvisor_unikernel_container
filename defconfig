@@ -155,8 +155,10 @@ struct config_data config = {
 			// rtl8196はvirtioの仮想デバイス化は使えない
 			// .pci = "device=pro1000, driver=pro1000, virtio=1, net=ippass, tty=1,"
 			.pci = "device=pro1000, driver=pro1000, net=ippass, tty=0"
+			// .pci = "device=pro1000, driver=pro1000, net=ippass,and, slot=01:00.0, driver=nvme"
 			// .pci = "device=rtl8169, driver=rtl8169, net=ippass, tty=0"
 			// "and, slot=03:00.0, driver=conceal" // 自宅ではwifi
+			// "and, device=nvme, driver=nvme" // 研究室pc nvme
 
 						// "and, slot=03:00.0, driver=conceal"
 						// "and, device=rtl8169, driver=rtl8169, net=pass, tty=1"

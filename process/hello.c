@@ -7,7 +7,6 @@
 char hello[] = "hello!!";
 
 void int_example()
-
 {
 	unsigned int ret = 5;
 	__asm__ __volatile__("mov $1,  %%eax;" //システムコール番号
@@ -18,6 +17,7 @@ void int_example()
 	printf("int example ret: %d\n", ret);
 	return;
 }
+
 void out__b(unsigned short int port, unsigned char data)
 {
 	asm volatile("outb %0,%1" ::"a"(data), "Nd"(port));
@@ -140,24 +140,35 @@ void tmp_callback(void *data, long long size)
 	printf("hello tmp callback\n");
 }
 
-void disk_io_example()
-{
-	int retval, num, id, getsitzeret;
-	void *data;
+// void disk_io_example()
+// {
+// 	int retval, num, id, getsitzeret;
+// 	void *data;
 
-	retval = storage_io_init();
-	printf("retval: %d\n", retval);
-	id = 1;
-	num = storage_io_get_num_devices(id);
-	printf("storag get num devices: %d\n", num);
+// 	retval = storage_io_init();
+// 	printf("retval: %d\n", retval);
+// 	id = 1;
+// 	num = storage_io_get_num_devices(id);
+// 	printf("storag get num devices: %d\n", num);
 
-	getsitzeret = storage_io_aget_size(id, 8, tmp_callback, data);
-	printf("storage_io_aget_size: %d\n", getsitzeret);
+// 	getsitzeret = storage_io_aget_size(id, 8, tmp_callback, data);
+// 	printf("storage_io_aget_size: %d\n", getsitzeret);
+// }
+
+void test_bv_read_write(){
+	char *buf = "123456789";
+	char recvbuf[100];
+	bv_net_write(buf, 9);
+
+	bv_net_read(recvbuf, 100);
+
+	printf("recv buf %s\n", recvbuf);
 }
 
 int _start(int a1, int a2)
 {
 	printf("%s\n", hello);
+	test_bv_read_write();
 	// syscall_example();
 	// vmcall_example();
 	// int_example();
