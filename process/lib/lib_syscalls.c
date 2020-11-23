@@ -50,7 +50,9 @@ typedef unsigned long ulong;
 #define BV_YIELD			16
 #define BV_NET_WRITE		17
 #define BV_NET_READ			18
-#define BV_GET_TIME			19
+#define BV_BLOCK_WRITE		19
+#define BV_BLOCK_READ		20
+#define BV_GET_TIME			21
 
 #ifdef __x86_64__
 #	define DOSYSCALL0(rb, ra) asm volatile \
@@ -235,6 +237,24 @@ bv_net_read (char *buf, int size)
 	ulong tmp;
 
 	DOSYSCALL2 (BV_NET_READ, buf, size, tmp);
+	return (int)tmp;
+}
+
+int
+bv_block_write (char *buf, int offset, int size)
+{
+	ulong tmp;
+
+	DOSYSCALL2 (BV_BLOCK_WRITE, buf, size, tmp);
+	return (int)tmp;
+}
+
+int
+bv_block_read (char *buf, int offset, int size)
+{
+	ulong tmp;
+
+	DOSYSCALL2 (BV_BLOCK_READ, buf, size, tmp);
 	return (int)tmp;
 }
 
