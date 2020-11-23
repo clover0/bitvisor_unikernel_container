@@ -47,6 +47,7 @@
 #include "types.h"
 #include "container.h"
 #include "arith.h"
+#include "time.h"
 
 #define NUM_OF_SYSCALLS 32
 #define NAMELEN 16
@@ -1182,6 +1183,25 @@ bv_net_read (ulong ip, ulong sp, ulong num, ulong si, ulong di)
 	return _net_read(buf, size);
 }
 
+static int
+_get_time(unsigned long *time)
+{
+	unsigned long _time = 0;
+
+	_time = (unsigned long)get_cpu_time();
+	memcpy(time, &_time, sizeof _time);
+
+	return 0;
+}
+
+ulong
+bv_get_time (ulong ip, ulong sp, ulong num, ulong si, ulong di)
+{
+	unsigned long *time = (unsigned long *)si;
+
+	return _get_time(time);
+}
+
 static syscall_func_t syscall_table[NUM_OF_SYSCALLS] = {
 	NULL,			/* 0 */
 	sys_nop,
@@ -1202,6 +1222,7 @@ static syscall_func_t syscall_table[NUM_OF_SYSCALLS] = {
 	bv_yield,
 	bv_net_write,
 	bv_net_read,
+	bv_get_time,
 };
 
 __attribute__ ((regparm (1))) void

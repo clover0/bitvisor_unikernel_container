@@ -158,11 +158,15 @@ void tmp_callback(void *data, long long size)
 void test_bv_read_write(){
 	char *buf = "123456789";
 	char recvbuf[100];
+	unsigned long time = 0;
 	bv_net_write(buf, 9);
 
 	bv_net_read(recvbuf, 100);
 
 	printf("recv buf %s\n", recvbuf);
+
+	bv_get_time(&time);
+	printf("time: %ld\n", time);
 }
 
 int _start(int a1, int a2)
