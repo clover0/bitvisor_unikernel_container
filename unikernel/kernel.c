@@ -75,7 +75,7 @@ unikernel_init(void)
 
     printf("init ukl timer\n");
     // handle = timer_new(timer_loop, NULL);
-    // timer_set(handle, 1000 * 1000 * 11);
+    // timer_set(handle, 1000 * 1000 * 11); // 11秒後
 
     handle2 = timer_new(new_uklthread, NULL);
     thread_new(new_uklthread, NULL, 4096 * 8);

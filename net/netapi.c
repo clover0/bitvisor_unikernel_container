@@ -242,17 +242,8 @@ net_container_send(void *containernet_handle, void *packet, unsigned int packet_
 
 	pkt = packet;
 	memcpy(pkt + 0, mac_address, 6);
-	printf("handle macaddress: %x:%x:%x:%x:%x:%x\n", 
-	handle->mac_address[0],handle->mac_address[1],handle->mac_address[2],
-	handle->mac_address[3],handle->mac_address[4],handle->mac_address[5]);
 
 	memcpy(pkt + 6, handle->mac_address, 6);
-	printf("\nnet_container_send(packet size %d): \n", packet_size);
-	for (int i = 0; i < packet_size; i++) {
-		printf("%02X:", pkt[i]);
-		if (i % 10 == 0)
-			printf("\n");
-	}
 	handle->container_phys_func->send(handle->container_phys_handle, 1, &packet,
 									  &packet_size, false);
 }

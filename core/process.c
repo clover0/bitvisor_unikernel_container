@@ -1110,40 +1110,31 @@ mkudp (char *buf, char *src, int sport, char *dst, int dport,
 	return datalen + 8 + 20;
 }
 
-static char tmpbuffs[10];
+static char tmpbuffs[200];
 static int
 _net_write(char *buf, int size)
 {
-	printf("bv write buf: %s\n", buf);
-	printf("bv write buf size: %d\n", size);
 
 	int ret_size = 0;
-	unsigned int pktsiz = 0;
-	char pkt[64 + 80 + 9];
-	char src_ip[4] = {192,168,0,196};
-	char dst_ip[4] = {192,168,0,187};
 	int len = 0;
 
 	// ここからbvのlwipに向かわせる
 	// またはNIC?
 	for (int i=0; i< sizeof tmpbuffs;i++){
+		if (!buf)
+			break;
 		tmpbuffs[i] = *buf;
 		buf++;
+		len++;
 	}
 	
-	ret_size = sizeof tmpbuffs;
+	ret_size = len;
 
 	// net側を操作したい
 	// 1. とりあえずここでパケットつくる
 	// 2. パケットをNICに送りたい
 	
-	memcpy (pkt + 12, "\x08\x00", 2);
-	pktsiz = mkudp (pkt + 14,
-				(char *)src_ip, 514,
-				(char *)dst_ip, 12049,
-				tmpbuffs, len) + 14;
-	containernet_write(pkt, pktsiz);
-	printf("finish write packet\n");
+	containernet_write(tmpbuffs, len);
 
 	return ret_size;
 }
@@ -1222,6 +1213,8 @@ static syscall_func_t syscall_table[NUM_OF_SYSCALLS] = {
 	bv_yield,
 	bv_net_write,
 	bv_net_read,
+	NULL, // bv_block_write,
+	NULL, // bv_block_read,
 	bv_get_time,
 };
 
