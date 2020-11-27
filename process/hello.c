@@ -169,10 +169,87 @@ void test_bv_read_write(){
 	printf("time: %ld\n", time);
 }
 
+// mkudp
+
+
+static void
+wshort (char *off, unsigned short x)
+{
+	off[0] = (x >> 8);
+	off[1] = x;
+}
+
+// for check
+static int
+mkudp (char *buf, char *src, int sport, char *dst, int dport,
+       char *data, int datalen)
+{
+	short sum;
+
+	// IPv4 ヘッダ
+	/* TTL=64 */
+	memcpy (buf, "\x45\x00\x00\x00\x00\x01\x00\x00\x40\x11\x00\x00", 12);
+	wshort (buf + 2,  datalen + 8 + 20);
+	memcpy (buf + 12, src, 4);
+	memcpy (buf + 16, dst, 4);
+
+	// UDPヘッダ
+	wshort (buf + 20, sport);
+	wshort (buf + 22, dport);
+	wshort (buf + 24, datalen + 8);
+	memcpy (buf + 26, "\x00\x11", 2); // check sum 
+	memcpy (buf + 28, data, datalen); // UDP data
+
+	sum = ~ipchecksum (buf + 12, datalen + 16);
+	memcpy (buf + 26, &sum, 2);
+	sum = ipchecksum (buf + 24, 4);
+	memcpy (buf + 26, &sum, 2);
+	sum = ipchecksum (buf, 20);
+	memcpy (buf + 10, &sum, 2);
+	return datalen + 8 + 20;
+}
+
+const int itr_count = 1000;
+int test_io_netsend_peformance(){
+	// Linux 上でも同一になりそうなコードがよい
+	// UDP パケットをつくる
+	unsigned int pktsiz = 0;
+	unsigned long start_time,end_time = 0;
+	char pkt[64 + 80 + 9];
+
+	// char *pkt_p;
+	char src_ip[4] = {192,168,0,196}; // 自宅PC
+	// char src_ip[4] = {192,168,11,111}; // 研究室PC 右
+	// char dst_ip[4] = {192,168,0,187}; // 自宅PC
+	char dst_ip[4] = {192,168,0,181}; // 自宅PC USB-LAN
+	// char dst_ip[4] = {192,168,11,4}; // 研究室PC USB-LAN
+
+	int len = 0;
+	char data[] = {'h','e', 'l', 'l', 'o'};
+
+	len = 5; // 5 * 8 byte
+	memcpy (pkt + 12, "\x08\x00", 2);
+	pktsiz = mkudp (pkt + 14,
+				(char *)src_ip, 514, // ip port
+				(char *)dst_ip, 12049, // ip port
+				data, len) + 14;
+
+	bv_get_time(&start_time);
+	for(int i=0; i< itr_count; i++){
+		bv_net_write(pkt, pktsiz);
+	}
+	bv_get_time(&end_time);
+
+	printf("result %ld / %d\n", end_time - start_time, itr_count);
+	
+	return 0;
+}
+
 int _start(int a1, int a2)
 {
 	printf("%s\n", hello);
-	test_bv_read_write();
+	// test_bv_read_write();
+	test_io_netsend_peformance();
 	// syscall_example();
 	// vmcall_example();
 	// int_example();

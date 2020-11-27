@@ -35,9 +35,10 @@ function main() {
   mkdir -p /tmp/mnt
   diskutil unmount /dev/"$part"
   sudo diskutil mount -mountPoint /tmp/mnt /dev/"$part"
-  sudo mkdir -p /tmp/mnt/EFI/BOOT
+  sudo mkdir -p /tmp/mnt/EFI/BOOT /tmp/mnt/tools
   cp ./boot/uefi-loader/loadvmm.efi /tmp/mnt/EFI/BOOT/BOOTX64.EFI
   cp ./bitvisor.elf /tmp/mnt/EFI/BOOT/BITVISOR.ELF
+  cp ./test.c /tmp/mnt/tools
   sync -f /tmp/mnt/EFI/BOOT/BOOTX64.EFI
   diskutil unmount /tmp/mnt 
   rmdir /tmp/mnt
