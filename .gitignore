@@ -43,6 +43,7 @@ tools/dbgsh-uefi/*.efi
 loadvmm.efi
 bootloader
 bootloaderusb
+process/includeos
 
 compile_commands.json
 build

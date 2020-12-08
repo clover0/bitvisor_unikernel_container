@@ -11,6 +11,8 @@ asubdirs-1 += lib
 bins-$(CONFIG_IP) += echoctl
 bins-$(CONFIG_PCI_MONITOR) += monitor
 
+includeosbins_ = includeos
+
 unikernelbins =
 #unikernelbins += osv
 # unikernelbins += kernel

@@ -53,6 +53,7 @@ deps = $(objs-1:%.o=$(dir)%.d) $(bobjs-1:%.o=$(dir)%.d)
 bins = $(bins-1:%=$(dir)%.bin)
 uklbins = $(unikernelbins:%=$(dir)%.bin)
 extappbins = $(extappbins-1:%=$(dir)%.bin)
+includeosbins = $(includeosbins_:%=$(dir)%.bin)
 flags-data := CFLAGS=$(CFLAGS) ASFLAGS=$(ASFLAGS) LDFLAGS=$(LDFLAGS)
 depends-data := include $(deps)
 objects-data := $(objs) $(bobjs)
@@ -67,11 +68,11 @@ $(defouta) : $(objs) $(dir)$(depends)
 	$(RM) $(defouta)
 	$(AR) cr $(defouta) $(objs)
 
-$(defoutp) : $(bins) $(uklbins) $(extappbins) $(dir)$(depends) $(dir)$(objects)
+$(defoutp) : $(bins) $(uklbins) $(extappbins) $(includeosbins) $(dir)$(depends) $(dir)$(objects)
 	$(V-info) LD $(defoutp)
 	echo $(defoutp)
-	echo $(CC) $(ASFLAGS) $(LDFLAGS) -Wl,-r -o $(defoutp) $(bins:%=%.s) $(uklbins:%=%.s) $(extappbins:%=%.s)
-	$(CC) $(ASFLAGS) $(LDFLAGS) -Wl,-r -o $(defoutp) $(bins:%=%.s) $(uklbins:%=%.s) $(extappbins:%=%.s)
+	echo $(CC) $(ASFLAGS) $(LDFLAGS) -Wl,-r -o $(defoutp) $(bins:%=%.s) $(uklbins:%=%.s) $(extappbins:%=%.s) $(includeosbins:%=%.s)
+	$(CC) $(ASFLAGS) $(LDFLAGS) -Wl,-r -o $(defoutp) $(bins:%=%.s) $(uklbins:%=%.s) $(extappbins:%=%.s) $(includeosbins:%=%.s)
 	echo "defoutp"
 
 $(uklbins) : $(bobjs) $(blibs-1) $(objs) $(dir)$(boptions)
@@ -103,7 +104,18 @@ $(extappbins) : $(extappobjsobjs)
 	echo 'prc_$(*F)_bin: .incbin "$@"' >> $@.s
 	echo 'prc_$(*F)_bin_end:' >> $@.s
 	echo $(CC) $(LDFLAGS) -o $@ $(extappobjs:%=$(dir)%) $($(*F)-libs) $(objs)
-	$(CC) $(LDFLAGS) -o $@ $(extappobjs:%=$(dir)%) $($(*F)-libs) $(objs)
+	$(CC) $(LDFLAGS) -o $@ $(ext＄ppobjs:%=$(dir)%) $($(*F)-libs) $(objs)
+
+$(includeosbins) : #$(includeosbins_)
+	cp process/includeos process/includeos.bin
+	echo '.section .processes' > $@.s
+	echo '.long prc_$(*F)_name, 0, prc_$(*F)_bin, 0' >> $@.s
+	echo '.quad prc_$(*F)_bin_end - prc_$(*F)_bin' >> $@.s
+	echo '.quad $($(*F)-stacksize)+0' >> $@.s
+	echo '.data' >> $@.s
+	echo 'prc_$(*F)_name: .string "$(*F)"' >> $@.s
+	echo 'prc_$(*F)_bin: .incbin "$@"' >> $@.s
+	echo 'prc_$(*F)_bin_end:' >> $@.s
 
 $(bins) : $(bobjs) $(blibs-1) $(objs) $(dir)$(boptions)
 	echo "bins"
