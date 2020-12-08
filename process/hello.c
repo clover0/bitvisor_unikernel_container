@@ -245,11 +245,16 @@ int test_io_netsend_peformance(){
 	return 0;
 }
 
+void do_sys_nop(){
+	nop();
+}
+
 int _start(int a1, int a2)
 {
 	printf("%s\n", hello);
 	// test_bv_read_write();
 	test_io_netsend_peformance();
+	do_sys_nop();
 	// syscall_example();
 	// vmcall_example();
 	// int_example();

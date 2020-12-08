@@ -103,6 +103,7 @@ is_range_valid (ulong addr, u32 len)
 static ulong
 sys_nop (ulong ip, ulong sp, ulong num, ulong si, ulong di)
 {
+	printf("do sys nop!\n");
 	return 0;
 }
 
