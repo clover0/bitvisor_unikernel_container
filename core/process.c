@@ -70,6 +70,11 @@ struct msgdsc_data {
 	void *func;
 };
 
+struct mm_struct {
+	u64 heap_start;
+	u64 heap_end;
+};
+
 struct process_data {
 	bool valid;
 	phys_t mm_phys;
@@ -79,12 +84,22 @@ struct process_data {
 	bool exitflag;
 	bool setlimit;
 	int stacksize;
+	// struct mm_struct mm;
 };
 
 extern ulong volatile syscallstack asm ("%gs:gs_syscallstack");
 static struct process_data process[NUM_OF_PID];
 static spinlock_t process_lock;
 static bool process_initialized = false;
+
+int getpid(void){
+	return currentcpu->pid;
+}
+
+int get_heap_start(void) {
+	return 1;
+	// return (int)process[currentcpu->pid].mm.heap_start;
+}
 
 static bool
 is_range_valid (ulong addr, u32 len)
@@ -237,12 +252,16 @@ process_load (void *bin)
 	for (i = ehdr->e_phnum; i;
 	     i--, phdr = (ELF_PHDR *)((u8 *)phdr + ehdr->e_phentsize)) {
 		if (phdr->p_type == PT_LOAD) {
+			printf("elf size: %d\n", phdr->p_filesz);
+			printf("elf mem size: %d\n", phdr->p_memsz);
+			printf("elf virt addr: %x\n", phdr->p_vaddr);
 			load_bin (phdr->p_vaddr,
 				  phdr->p_memsz,
 				  (u8 *)bin + phdr->p_offset,
 				  phdr->p_filesz);
 		}
 	}
+	printf("elf entry: %x\n", ehdr->e_entry);
 	return ehdr->e_entry;
 }
 
@@ -329,6 +348,88 @@ found:
 						false);
 #endif
 	process[pid].msgdsc[0].func = (void *)rip;
+	mm_process_switch (mm_phys);
+	spinlock_unlock (&process_lock);
+	return _msgopen_2 (frompid, pid, gen, 0);
+}
+
+static u64 process_get_heap_start () {
+	// int pid = currentcpu->pid;
+	printf("[process.c] process_get_heap_start\n");
+	// u64 r = process[pid].mm.heap_start;
+	// return r;
+	return 1;
+}
+
+static int
+process_new2 (int frompid, void *bin, int stacksize)
+{
+	int pid, gen;
+	u64 phys;
+	ulong rip;
+	phys_t mm_phys, heap_phys;
+	void *heap_virt;
+
+	spinlock_lock (&process_lock);
+	for (pid = 1; pid < NUM_OF_PID; pid++) {
+		if (!process[pid].valid)
+			goto found;
+	}
+err:
+	spinlock_unlock (&process_lock);
+	return -1;
+found:
+	if (mm_process_alloc2 (&phys) < 0) /* alloc page directories and init */
+		goto err;
+	process[pid].mm_phys = phys;
+	process[pid].running = 0;
+	process[pid].exitflag = false;
+	process[pid].setlimit = false;
+	process[pid].stacksize = PAGESIZE * 2048; // TODO!! この大きさは必要
+	if (stacksize > PAGESIZE)
+		process[pid].stacksize = stacksize;
+	gen = ++process[pid].gen;
+	process[pid].valid = true;
+	clearmsgdsc (process[pid].msgdsc);
+	mm_phys = mm_process_switch (phys);
+	if (!(rip = process_load (bin))) { /* load a program */
+		printf ("process_load failed.\n");
+		process[pid].valid = false;
+		pid = 0;
+	}
+	// alloc heap
+	// alloc_page(&heap_virt, &heap_phys);
+	// process[pid].mm.heap_start = (u64)heap_virt;
+	printf("[process.c]pid: %d\n", pid);
+	printf("[process.c]heap start: %08llx\n", (u64)heap_virt);
+	printf("[process.c]heap phys start: %08llx\n", (u64)heap_phys);
+
+	/* for system calls */
+#ifdef __x86_64__
+#ifdef USE_SYSCALL64
+	mm_process_map_shared_physpage (0x3FFFF000,
+					sym_to_phys (processuser_syscall),
+					false);
+#else
+	mm_process_map_shared_physpage (0x3FFFF000,
+					sym_to_phys (processuser_callgate64),
+					false);
+#endif
+#else
+	if (sysenter_available ())
+		mm_process_map_shared_physpage (0x3FFFF000,
+						sym_to_phys
+						(processuser_sysenter),
+						false);
+	else
+		mm_process_map_shared_physpage (0x3FFFF000,
+						sym_to_phys
+						(processuser_no_sysenter),
+						false);
+#endif
+	process[pid].msgdsc[0].func = (void *)rip;
+	// get heap
+	// process[pid].msgdsc[1].func = (void *)process_get_heap_start;
 	mm_process_switch (mm_phys);
 	spinlock_unlock (&process_lock);
 	return _msgopen_2 (frompid, pid, gen, 0);
@@ -825,10 +926,29 @@ _newprocess (int frompid, char *name)
 	return process_new (frompid, bin, stacksize);
 }
 
+static int
+_newprocess2 (int frompid, char *name)
+{
+	void *bin = NULL;
+	int stacksize = 0;
+
+	if (!bin)
+		bin = _builtin_find (name, &stacksize);
+	if (!bin)
+		return -1;
+	return process_new2 (frompid, bin, stacksize);
+}
+
 int
 newprocess (char *name)
 {
 	return _newprocess (0, name);
+}
+
+int
+newprocess2 (char *name)
+{
+	return _newprocess2 (0, name);
 }
 
 /* si=name */
