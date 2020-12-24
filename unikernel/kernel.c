@@ -11,7 +11,7 @@ static int countint = 1000; // 1s
 unsigned long long *heap;
 static int ukls[32];
 
-#define INFO(TEXT, ...) printf("[ukl-kernel]" TEXT , ##__VA_ARGS__)
+#define INFO(TEXT, ...) printf("[ukl-kernel]" TEXT, ##__VA_ARGS__)
 
 // VMM内へのタイマ割り込み起点の処理
 int vt_insert_timer_interrupt(void *data, int num) {
@@ -50,16 +50,19 @@ static int ukl_kernel_msghandler(int m, int c, struct msgbuf *buf, int bufcnt) {
 		INFO("ukl kernel: 3\n");
 		heap = (unsigned long long *)buf->base;
 		INFO("[ukl] heap address: %llx (%lld)",
-			   (unsigned long long)heap, (unsigned long long)heap);
+			 (unsigned long long)heap, (unsigned long long)heap);
 		break;
 	case 4:
-		INFO("[ukl]get heap address (pid %d)\n", getpid());
+		INFO("get heap address (pid %d)\n", getpid());
 		// heap_tmp = (int)msgsendint(getpid(), 1);
 		// TODO
 		// heap_tmp = (int)sys_msgsendint(0, 0, 0, 1, 1);
 		heap_tmp = get_heap_start();
-		INFO("[ukl]heap addr: %x\n", heap_tmp);
+		INFO("heap addr: %x\n", heap_tmp);
 		return heap_tmp;
+	case 5:
+		INFO("get container pid\n");
+		return getpid();
 	default:
 		break;
 	}
@@ -118,7 +121,10 @@ unikernel_init(void) {
 	handle = timer_new(new_container, NULL);
 	timer_set(handle, 1000 * 1000 * 10); // 10秒後
 
-	// new_container();
+	INFO("new container 2\n");
+	handle = timer_new(new_container, NULL);
+	timer_set(handle, 1000 * 1000 * 15); // 10秒後
+
 	// INFO("new container 2\n");
 	// new_container();
 	// d = newprocess("hello");
