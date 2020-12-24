@@ -449,6 +449,9 @@ found:
 		process[pid].valid = false;
 		pid = 0;
 	}
+	printf("alloc for fs\n");
+	mm_process_map_alloc (0, 4096);
+	memcpy ((void *)0, 0, 4096);
 	// alloc heap
 	printf("heap: %llx\n", li.end);
 	// alloc_pages(&heap_virt, &heap_phys, 10);

@@ -4,6 +4,8 @@
 #include <core/thread.h>
 #include <core/timer.h>
 
+#define MSR_IA32_FS_BASE		0xC0000100
+
 static int desc;
 static tid_t tid;
 #define LOCAL_TIMER_VECTOR 0xec
@@ -27,10 +29,29 @@ int vt_insert_timer_interrupt(void *data, int num) {
 	return num;
 }
 
+static inline void
+asm_wrmsr32 (ulong num, u32 a, u32 d)
+{
+	asm volatile ("wrmsr"
+		      :
+		      : "c" (num), "a" (a), "d" (d));
+}
+
+static inline void
+asm_wrmsr64 (ulong num, u64 value)
+{
+	u32 a, d;
+
+	a = (u32)value;
+	d = (u32)(value >> 32);
+	asm_wrmsr32 (num, a, d);
+}
+
 static int ukl_kernel_msghandler(int m, int c, struct msgbuf *buf, int bufcnt) {
 	void *tmp1;
 	phys_t tmp2;
 	int heap_tmp;
+	int r = -1;
 
 	switch (c) {
 	case 1:
@@ -63,6 +84,10 @@ static int ukl_kernel_msghandler(int m, int c, struct msgbuf *buf, int bufcnt) {
 	case 5:
 		INFO("get container pid\n");
 		return getpid();
+	case 6: // TODO: delete おそらく不要
+		INFO("set tls(base=%x)\n", 0);
+		asm_wrmsr64 (MSR_IA32_FS_BASE, 0);
+		break;
 	default:
 		break;
 	}
@@ -82,7 +107,7 @@ static void new_uklprocess() {
 	if (d < 0) {
 		INFO("new ukl process error\n");
 		panic("new ukl process error\n");
-	}
+	}	
 	msgsendint(d, 0);
 	if (d < 0) {
 		panic("start includeos process error");
@@ -121,9 +146,9 @@ unikernel_init(void) {
 	handle = timer_new(new_container, NULL);
 	timer_set(handle, 1000 * 1000 * 10); // 10秒後
 
-	INFO("new container 2\n");
-	handle = timer_new(new_container, NULL);
-	timer_set(handle, 1000 * 1000 * 15); // 10秒後
+	// INFO("new container 2\n");
+	// handle = timer_new(new_container, NULL);
+	// timer_set(handle, 1000 * 1000 * 15); // 15秒後
 
 	// INFO("new container 2\n");
 	// new_container();
