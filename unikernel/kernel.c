@@ -119,7 +119,7 @@ static void new_uklprocess() {
 static void new_container() {
 	INFO("create ukl thread\n");
 	// tid = thread_new(newprocess, "unikernel", 4096 * 8);
-	tid = thread_new(new_uklprocess, NULL, 0x1000 * 10); // 4K *2
+	tid = thread_new(new_uklprocess, NULL, 0x1000 * 10); // stack 4K *10
 	INFO("ukl tid: %d\n", tid);
 }
 
@@ -143,8 +143,11 @@ unikernel_init(void) {
 	INFO("registered ukl handler\n");
 
 	INFO("new container 1\n");
-	handle = timer_new(new_container, NULL);
-	timer_set(handle, 1000 * 1000 * 10); // 10秒後
+	// new_container();
+	// new_uklprocess();
+	// handle = timer_new(new_container, NULL);
+	// timer_set(handle, 1000 * 1000 * 0); // 10秒後
+	thread_new(new_uklprocess, NULL, 0x1000 * 10); // stack 4K *10
 
 	// INFO("new container 2\n");
 	// handle = timer_new(new_container, NULL);

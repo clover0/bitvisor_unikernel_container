@@ -263,6 +263,7 @@ process_load (void *bin)
 struct load_info {
 	ulong entry;
 	ulong end;
+	int npages;
 };
 
 static struct load_info
@@ -288,12 +289,12 @@ process_load2 (void *bin)
 			printf("elf virt addr: 0x%llx\n", phdr->p_vaddr);
 			if (phdr->p_memsz > 0){
 				load_bin (phdr->p_vaddr,
-					phdr->p_memsz + PAGESIZE * 8,
+					phdr->p_memsz + PAGESIZE2M * 50, // TODO
 					(u8 *)bin + phdr->p_offset,
 					phdr->p_filesz);
 				// only 1 segment
 				v_start = phdr->p_vaddr;
-				len = phdr->p_memsz + PAGESIZE * 8;
+				len = phdr->p_memsz + PAGESIZE2M * 50;
 				len += phdr->p_vaddr & PAGESIZE_MASK;
 				npages = (len + PAGESIZE - 1) >> PAGESIZE_SHIFT;
 			}
@@ -302,6 +303,7 @@ process_load2 (void *bin)
 
 	li.entry = ehdr->e_entry;
 	li.end = v_start + PAGESIZE * (npages + 0);
+	li.npages = npages;
 
 	// *((int *) li.end) = 19;
 	// memcpy(li.end, 0, 1);
@@ -440,8 +442,12 @@ found:
 	gen = ++process[pid].gen;
 	process[pid].valid = true;
 	clearmsgdsc (process[pid].msgdsc);
-	printf("process phys %16llx\n", phys);
+	// printf("process phys %16llx\n", phys);
 	mm_phys = mm_process_switch (phys);
+	// mm_process_map_alloc (0x03300000, PAGESIZE * 100);
+	printf("alloc for TLS\n");			
+	mm_process_map_alloc (0, PAGESIZE * 100);
+	memcpy ((void *)0x0, 0, PAGESIZE * 100);
 	li = process_load2(bin);
 	rip = li.entry;
 	if (!(rip)) { /* load a program */
@@ -449,9 +455,6 @@ found:
 		process[pid].valid = false;
 		pid = 0;
 	}
-	printf("alloc for fs\n");
-	mm_process_map_alloc (0, 4096);
-	memcpy ((void *)0, 0, 4096);
 	// alloc heap
 	printf("heap: %llx\n", li.end);
 	// alloc_pages(&heap_virt, &heap_phys, 10);
