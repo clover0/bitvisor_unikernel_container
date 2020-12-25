@@ -103,11 +103,17 @@ static void timer_loop(void *handle, void *data) {
 
 static void new_uklprocess() {
 	INFO("create ukl process\n");
-	int d = newprocess2("includeos");
+	int d, d1;
+	d = newprocess2("includeos");
 	if (d < 0) {
-		INFO("new ukl process error\n");
 		panic("new ukl process error\n");
-	}	
+	}
+	d1 = msgopen ("ttyout");
+	if (d1 < 0)
+		panic ("msgopen ttyout");
+	msgsenddesc (d, d1);
+	msgsenddesc (d, d1);
+	msgclose (d1);
 	msgsendint(d, 0);
 	if (d < 0) {
 		panic("start includeos process error");
@@ -185,15 +191,6 @@ unikernel_init(void) {
 
 	// panic("success starting includeos\n");
 
-	// msgsenddesc(d, d1);
-	// msgsenddesc(d, d1);
-	// msgclose(d1);
-	// msgsendint(d, 0); // start process/unikernel.bin
-	// msgclose(d);
-
-	// desc = msgopen("unikernel");
-	// if (desc < 0)
-	//     panic("panic msgopen unikernel (unikernel)");
 }
 
 INITFUNC("driver99", unikernel_init);

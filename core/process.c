@@ -260,26 +260,17 @@ process_load (void *bin)
 	return ehdr->e_entry;
 }
 
-struct load_info {
-	ulong entry;
-	ulong end;
-	int npages;
-};
-
-static struct load_info
+static ulong
 process_load2 (void *bin)
 {
 	u8 *b;
 	ELF_EHDR *ehdr;
 	ELF_PHDR *phdr;
 	unsigned int i;
-	uint len, npages, v_start;
-	struct load_info li;
-	li.entry = 0;
 
 	b = bin;
 	if (b[0] != 0x7F && b[1] != 'E' && b[2] != 'L' && b[3] != 'F')
-		return li;
+		return 0;
 	ehdr = bin;
 	phdr = (ELF_PHDR *)((u8 *)bin + ehdr->e_phoff);
 	for (i = ehdr->e_phnum; i;
@@ -289,30 +280,30 @@ process_load2 (void *bin)
 			printf("elf virt addr: 0x%llx\n", phdr->p_vaddr);
 			if (phdr->p_memsz > 0){
 				load_bin (phdr->p_vaddr,
-					phdr->p_memsz + PAGESIZE2M * 50, // TODO
+					phdr->p_memsz + PAGESIZE2M * 20, // TODO
 					(u8 *)bin + phdr->p_offset,
 					phdr->p_filesz);
 				// only 1 segment
-				v_start = phdr->p_vaddr;
-				len = phdr->p_memsz + PAGESIZE2M * 50;
-				len += phdr->p_vaddr & PAGESIZE_MASK;
-				npages = (len + PAGESIZE - 1) >> PAGESIZE_SHIFT;
+				// v_start = phdr->p_vaddr;
+				// len = phdr->p_memsz + PAGESIZE2M * 20;
+				// len += phdr->p_vaddr & PAGESIZE_MASK;
+				// npages = (len + PAGESIZE - 1) >> PAGESIZE_SHIFT;
 			}
 		}
 	}
 
-	li.entry = ehdr->e_entry;
-	li.end = v_start + PAGESIZE * (npages + 0);
-	li.npages = npages;
+	// li.entry = ehdr->e_entry;
+	// li.end = v_start + PAGESIZE * (npages + 0);
+	// li.npages = npages;
 
 	// *((int *) li.end) = 19;
 	// memcpy(li.end, 0, 1);
 
-	printf("load info entry: %llx\n", li.entry);
-	printf("load info len: %llx\n", len);
-	printf("load info end: %llx\n", li.end);
+	// printf("load info entry: %llx\n", li.entry);
+	// printf("load info len: %llx\n", len);
+	// printf("load info end: %llx\n", li.end);
 
-	return li;
+	return ehdr->e_entry;
 }
 
 /* for internal use */
@@ -419,7 +410,6 @@ process_new2 (int frompid, void *bin, int stacksize)
 	ulong rip;
 	phys_t mm_phys, heap_phys;
 	void *heap_virt;
-	struct load_info li;
 
 	spinlock_lock (&process_lock);
 	for (pid = 1; pid < NUM_OF_PID; pid++) {
@@ -442,33 +432,15 @@ found:
 	gen = ++process[pid].gen;
 	process[pid].valid = true;
 	clearmsgdsc (process[pid].msgdsc);
-	// printf("process phys %16llx\n", phys);
 	mm_phys = mm_process_switch (phys);
-	// mm_process_map_alloc (0x03300000, PAGESIZE * 100);
 	printf("alloc for TLS\n");			
 	mm_process_map_alloc (0, PAGESIZE * 100);
 	memcpy ((void *)0x0, 0, PAGESIZE * 100);
-	li = process_load2(bin);
-	rip = li.entry;
-	if (!(rip)) { /* load a program */
+	if (!(rip = process_load2 (bin))) { /* load a program */
 		printf ("process_load failed.\n");
 		process[pid].valid = false;
 		pid = 0;
 	}
-	// alloc heap
-	printf("heap: %llx\n", li.end);
-	// alloc_pages(&heap_virt, &heap_phys, 10);
-	// memset(heap_virt, 0, PAGESIZE);
-	// printf("memset heap virt\n");
-	// heap_virt += PAGESIZE;
-	// memset(heap_virt, 0, PAGESIZE);
-	// printf("memset heap virt2\n");
-	// *((int *)heap_virt) = 19;
-	// process[pid].mm.heap_start = (u64)heap_virt;
-	process[pid].mm.heap_start = (u64)li.end;
-	printf("[process.c]pid: %d\n", pid);
-	printf("[process.c]heap start: %16llx\n", (u64)heap_virt);
-	printf("[process.c]heap phys start: %16llx\n", (u64)heap_phys);
 
 	/* for system calls */
 #ifdef __x86_64__
@@ -494,11 +466,7 @@ found:
 						false);
 #endif
 	process[pid].msgdsc[0].func = (void *)rip;
-	// get heap
-	// process[pid].msgdsc[1].func = (void *)process_get_heap_start;
 	mm_process_switch (mm_phys);
-	// *((int *)heap_virt) = 4;
-	// printf("memset heap virt 2-2\n");
 	spinlock_unlock (&process_lock);
 	return _msgopen_2 (frompid, pid, gen, 0);
 }
