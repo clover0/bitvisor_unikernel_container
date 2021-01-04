@@ -1,13 +1,14 @@
 #include <lib_lineinput.h>
 #include <lib_printf.h>
+#include <lib_storage_io.h>
 #include <lib_string.h>
 #include <lib_syscalls.h>
-#include <lib_storage_io.h>
 
 char hello[] = "hello!!";
+int heap[65536], heaplen = 65536;
+char buf[65536];
 
-void int_example()
-{
+void int_example() {
 	unsigned int ret = 5;
 	__asm__ __volatile__("mov $1,  %%eax;" //システムコール番号
 						 "int $0x80;"	   //80番で割り込みを発生させる
@@ -18,18 +19,15 @@ void int_example()
 	return;
 }
 
-void out__b(unsigned short int port, unsigned char data)
-{
+void out__b(unsigned short int port, unsigned char data) {
 	asm volatile("outb %0,%1" ::"a"(data), "Nd"(port));
 }
 
-void out__l(unsigned short int port, unsigned char data)
-{
+void out__l(unsigned short int port, unsigned char data) {
 	asm volatile("out %0,%1" ::"a"(data), "Nd"(port));
 }
 
-unsigned char in__b(unsigned short int port)
-{
+unsigned char in__b(unsigned short int port) {
 	unsigned char ret;
 	asm volatile("inb %1,%0;"
 				 : "=a"(ret)
@@ -37,8 +35,7 @@ unsigned char in__b(unsigned short int port)
 	return ret;
 }
 
-unsigned char in__l(unsigned short int port)
-{
+unsigned char in__l(unsigned short int port) {
 	unsigned char ret;
 	asm volatile("in %1,%0;"
 				 : "=a"(ret)
@@ -46,8 +43,7 @@ unsigned char in__l(unsigned short int port)
 	return ret;
 }
 
-void io_cmos_example()
-{
+void io_cmos_example() {
 	printf("io cmos start\n");
 	// CMOSアクセス
 	unsigned short int select = 0x70;
@@ -84,8 +80,7 @@ void io_cmos_example()
 	return;
 }
 
-void vmcall_example()
-{
+void vmcall_example() {
 	printf("call vmcall\n");
 	unsigned int num = 8;
 	__asm__ __volatile__(
@@ -99,8 +94,7 @@ void vmcall_example()
 	return;
 }
 
-void syscall_example()
-{
+void syscall_example() {
 	printf("call syscall\n");
 	unsigned int num = 1;
 	// __asm__ __volatile__("mov %eax,$0x08");
@@ -116,8 +110,7 @@ void syscall_example()
 	return;
 }
 
-void iopl_example()
-{
+void iopl_example() {
 	printf("iopl start\n");
 	unsigned long flags;
 	// unsigned short int* cs;
@@ -135,8 +128,7 @@ void iopl_example()
 	printf("eflags after in user: %08lX\n", flags);
 }
 
-void tmp_callback(void *data, long long size)
-{
+void tmp_callback(void *data, long long size) {
 	printf("hello tmp callback\n");
 }
 
@@ -155,7 +147,7 @@ void tmp_callback(void *data, long long size)
 // 	printf("storage_io_aget_size: %d\n", getsitzeret);
 // }
 
-void test_bv_read_write(){
+void test_bv_read_write() {
 	char *buf = "123456789";
 	char recvbuf[100];
 	unsigned long time = 0;
@@ -171,90 +163,106 @@ void test_bv_read_write(){
 
 // mkudp
 
-
 static void
-wshort (char *off, unsigned short x)
-{
+wshort(char *off, unsigned short x) {
 	off[0] = (x >> 8);
 	off[1] = x;
 }
 
 // for check
 static int
-mkudp (char *buf, char *src, int sport, char *dst, int dport,
-       char *data, int datalen)
-{
+mkudp(char *buf, char *src, int sport, char *dst, int dport,
+	  char *data, int datalen) {
 	short sum;
 
 	// IPv4 ヘッダ
 	/* TTL=64 */
-	memcpy (buf, "\x45\x00\x00\x00\x00\x01\x00\x00\x40\x11\x00\x00", 12);
-	wshort (buf + 2,  datalen + 8 + 20);
-	memcpy (buf + 12, src, 4);
-	memcpy (buf + 16, dst, 4);
+	memcpy(buf, "\x45\x00\x00\x00\x00\x01\x00\x00\x40\x11\x00\x00", 12);
+	wshort(buf + 2, datalen + 8 + 20);
+	memcpy(buf + 12, src, 4);
+	memcpy(buf + 16, dst, 4);
 
 	// UDPヘッダ
-	wshort (buf + 20, sport);
-	wshort (buf + 22, dport);
-	wshort (buf + 24, datalen + 8);
-	memcpy (buf + 26, "\x00\x11", 2); // check sum 
-	memcpy (buf + 28, data, datalen); // UDP data
+	wshort(buf + 20, sport);
+	wshort(buf + 22, dport);
+	wshort(buf + 24, datalen + 8);
+	memcpy(buf + 26, "\x00\x11", 2); // check sum
+	memcpy(buf + 28, data, datalen); // UDP data
 
-	sum = ~ipchecksum (buf + 12, datalen + 16);
-	memcpy (buf + 26, &sum, 2);
-	sum = ipchecksum (buf + 24, 4);
-	memcpy (buf + 26, &sum, 2);
-	sum = ipchecksum (buf, 20);
-	memcpy (buf + 10, &sum, 2);
+	sum = ~ipchecksum(buf + 12, datalen + 16);
+	memcpy(buf + 26, &sum, 2);
+	sum = ipchecksum(buf + 24, 4);
+	memcpy(buf + 26, &sum, 2);
+	sum = ipchecksum(buf, 20);
+	memcpy(buf + 10, &sum, 2);
 	return datalen + 8 + 20;
 }
 
 const int itr_count = 1000;
-int test_io_netsend_peformance(){
+int test_io_netsend_peformance() {
 	// Linux 上でも同一になりそうなコードがよい
 	// UDP パケットをつくる
 	unsigned int pktsiz = 0;
-	unsigned long start_time,end_time = 0;
+	unsigned long start_time, end_time = 0;
 	char pkt[64 + 80 + 9];
 
 	// char *pkt_p;
-	char src_ip[4] = {192,168,0,196}; // 自宅PC
+	char src_ip[4] = {192, 168, 0, 196}; // 自宅PC
 	// char src_ip[4] = {192,168,11,111}; // 研究室PC 右
 	// char dst_ip[4] = {192,168,0,187}; // 自宅PC
-	char dst_ip[4] = {192,168,0,181}; // 自宅PC USB-LAN
+	char dst_ip[4] = {192, 168, 0, 181}; // 自宅PC USB-LAN
 	// char dst_ip[4] = {192,168,11,4}; // 研究室PC USB-LAN
 
 	int len = 0;
-	char data[] = {'h','e', 'l', 'l', 'o'};
+	char data[] = {'h', 'e', 'l', 'l', 'o'};
 
 	len = 5; // 5 * 8 byte
-	memcpy (pkt + 12, "\x08\x00", 2);
-	pktsiz = mkudp (pkt + 14,
-				(char *)src_ip, 514, // ip port
-				(char *)dst_ip, 12049, // ip port
-				data, len) + 14;
+	memcpy(pkt + 12, "\x08\x00", 2);
+	pktsiz = mkudp(pkt + 14,
+				   (char *)src_ip, 514,	  // ip port
+				   (char *)dst_ip, 12049, // ip port
+				   data, len) +
+			 14;
 
 	bv_get_time(&start_time);
-	for(int i=0; i< itr_count; i++){
+	for (int i = 0; i < itr_count; i++) {
 		bv_net_write(pkt, pktsiz);
 	}
 	bv_get_time(&end_time);
 
 	printf("result %ld / %d\n", end_time - start_time, itr_count);
-	
+
 	return 0;
 }
 
-void do_sys_nop(){
+void do_sys_nop() {
 	nop();
 }
 
-int _start(int a1, int a2)
-{
+void page_fault_exception(void) {
+	asm volatile("movq	%fs:40, %rax");
+}
+
+int _start(int a1, int a2) {
+	struct msgbuf mbuf;
 	printf("%s\n", hello);
 	// test_bv_read_write();
-	test_io_netsend_peformance();
-	do_sys_nop();
+	// test_io_netsend_peformance();
+	// do_sys_nop();
+	// page_fault_exception();
+	// int md = msgopen("ttyout");
+	// if (md < 0) {
+		// panic("cant open ttyout");
+	// }
+	// int d = msgopen("ukl");
+	// if (d < 0) {
+		// panic("cant open ukl");
+	// }
+	// setmsgbuf (&mbuf, heap, sizeof buf, 1);
+	// msgsendbuf(d, 3, &mbuf, 1);
+	// for (;;){} // infinite loop, so hang guest machine
+	// msgsendint(md, 'Y');
+	// msgsendint(md, '\n');
 	// syscall_example();
 	// vmcall_example();
 	// int_example();

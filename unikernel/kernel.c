@@ -114,6 +114,7 @@ static void new_uklprocess() {
 	msgsenddesc (d, d1);
 	msgsenddesc (d, d1);
 	msgclose (d1);
+	// start up
 	msgsendint(d, 0);
 	if (d < 0) {
 		panic("start includeos process error");
@@ -123,10 +124,12 @@ static void new_uklprocess() {
 }
 
 static void new_container() {
+	int tid;
 	INFO("create ukl thread\n");
-	// tid = thread_new(newprocess, "unikernel", 4096 * 8);
-	tid = thread_new(new_uklprocess, NULL, 0x1000 * 10); // stack 4K *10
-	INFO("ukl tid: %d\n", tid);
+	tid = thread_new(new_uklprocess, NULL, 0x1000 * 1024 * 1); // stack 4K * 1024 * 2
+	// new_uklprocess();
+	INFO("thread id: %d\n", tid);
+	return;
 }
 
 static void
@@ -153,7 +156,11 @@ unikernel_init(void) {
 	// new_uklprocess();
 	// handle = timer_new(new_container, NULL);
 	// timer_set(handle, 1000 * 1000 * 0); // 10秒後
-	thread_new(new_uklprocess, NULL, 0x1000 * 10); // stack 4K *10
+	// thread_new(new_uklprocess, NULL, 0x200000); // stack 2MB
+	// thread_new(new_uklprocess, NULL, 0x1000 * 10); // stack 4K *10
+	// new_uklprocess();
+	
+	new_container();
 
 	// INFO("new container 2\n");
 	// handle = timer_new(new_container, NULL);

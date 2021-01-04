@@ -143,6 +143,16 @@ schedule_skip (bool start)
 	return false;
 }
 
+static void
+set_ts_bit_0() {
+	ulong cr0;
+
+	// FIXME: bad implement
+	asm_rdcr0(&cr0);
+	cr0 &= ~CR0_TS_BIT;
+	asm_wrcr0(cr0);
+}
+
 void
 schedule (void)
 {
@@ -188,6 +198,9 @@ found:
 	}
 	if (d->cpunum != CPUNUM_ANY)
 		schedule_skip (false);
+	
+	// set TS BIT = 0
+	set_ts_bit_0();
 	thread_switch (&td[oldtid].context, d->context, 0);
 	switched ();
 }

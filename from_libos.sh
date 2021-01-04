@@ -4,7 +4,10 @@ set -eu
 
 echo "build includeos and app"
 cd ~/programs/IncludeOS
-docker-compose exec builder /bin/bash -c "cd build && make && cd ../app1/build && cmake --build ."
+docker-compose exec builder /bin/bash -c \
+ "cd build && source activate.sh && make && source deactivate.sh \
+ && \
+ cd ../app1/build && source activate.sh && cmake --build . && source deactivate.sh"
 cd app1/build
 
 echo "install to bv"

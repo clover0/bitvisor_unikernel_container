@@ -1452,7 +1452,7 @@ mm_process_map_alloc (virt_t virt, uint len)
 	for (v = virt; npages > 0; v += PAGESIZE, npages--) {
 		alloc_page (&tmp, &phys);
 		if(npages == (len + PAGESIZE - 1) >> PAGESIZE_SHIFT || npages == 1){
-			printf("alloc page: %x (page %d), virt: %x \n", tmp, npages, v);
+			printf("alloc page: %x (page %d), virt: %x, phys: %x\n", tmp, npages, v, phys);
 		}
 		memset (tmp, 0, PAGESIZE);
 		mm_process_mappage (v, phys | PTE_P_BIT | PTE_RW_BIT |

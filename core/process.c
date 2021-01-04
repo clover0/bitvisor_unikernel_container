@@ -276,32 +276,14 @@ process_load2 (void *bin)
 	for (i = ehdr->e_phnum; i;
 	     i--, phdr = (ELF_PHDR *)((u8 *)phdr + ehdr->e_phentsize)) {
 		if (phdr->p_type == PT_LOAD) {
-			printf("elf mem size: 0x%llx, %ld\n", phdr->p_memsz, phdr->p_memsz);
-			printf("elf virt addr: 0x%llx\n", phdr->p_vaddr);
 			if (phdr->p_memsz > 0){
 				load_bin (phdr->p_vaddr,
-					phdr->p_memsz + PAGESIZE2M * 20, // TODO
+					phdr->p_memsz + PAGESIZE2M * 25, // TODO
 					(u8 *)bin + phdr->p_offset,
 					phdr->p_filesz);
-				// only 1 segment
-				// v_start = phdr->p_vaddr;
-				// len = phdr->p_memsz + PAGESIZE2M * 20;
-				// len += phdr->p_vaddr & PAGESIZE_MASK;
-				// npages = (len + PAGESIZE - 1) >> PAGESIZE_SHIFT;
 			}
 		}
 	}
-
-	// li.entry = ehdr->e_entry;
-	// li.end = v_start + PAGESIZE * (npages + 0);
-	// li.npages = npages;
-
-	// *((int *) li.end) = 19;
-	// memcpy(li.end, 0, 1);
-
-	// printf("load info entry: %llx\n", li.entry);
-	// printf("load info len: %llx\n", len);
-	// printf("load info end: %llx\n", li.end);
 
 	return ehdr->e_entry;
 }
@@ -394,14 +376,6 @@ found:
 	return _msgopen_2 (frompid, pid, gen, 0);
 }
 
-static u64 process_get_heap_start () {
-	// int pid = currentcpu->pid;
-	printf("[process.c] process_get_heap_start\n");
-	// u64 r = process[pid].mm.heap_start;
-	// return r;
-	return 1;
-}
-
 static int
 process_new2 (int frompid, void *bin, int stacksize)
 {
@@ -420,22 +394,19 @@ err:
 	spinlock_unlock (&process_lock);
 	return -1;
 found:
-	if (mm_process_alloc2 (&phys) < 0) /* alloc page directories and init */
+	if (mm_process_alloc (&phys) < 0) /* alloc page directories and init */
 		goto err;
 	process[pid].mm_phys = phys;
 	process[pid].running = 0;
 	process[pid].exitflag = false;
 	process[pid].setlimit = false;
-	process[pid].stacksize = PAGESIZE8M * 2; // TODO!! この大きさは必要
+	process[pid].stacksize = PAGESIZE * 1024;
 	if (stacksize > PAGESIZE)
 		process[pid].stacksize = stacksize;
 	gen = ++process[pid].gen;
 	process[pid].valid = true;
 	clearmsgdsc (process[pid].msgdsc);
 	mm_phys = mm_process_switch (phys);
-	printf("alloc for TLS\n");			
-	mm_process_map_alloc (0, PAGESIZE * 100);
-	memcpy ((void *)0x0, 0, PAGESIZE * 100);
 	if (!(rip = process_load2 (bin))) { /* load a program */
 		printf ("process_load failed.\n");
 		process[pid].valid = false;
@@ -466,6 +437,9 @@ found:
 						false);
 #endif
 	process[pid].msgdsc[0].func = (void *)rip;
+	printf("alloc for TLS\n");
+	mm_process_map_alloc (0, PAGESIZE * 100);
+	memset ((void *)0x0, 0, PAGESIZE * 100);
 	mm_process_switch (mm_phys);
 	spinlock_unlock (&process_lock);
 	return _msgopen_2 (frompid, pid, gen, 0);
@@ -1275,6 +1249,8 @@ _net_write(char *buf, int size)
 	int ret_size = 0;
 	int len = 0;
 
+	printf("do bv net write \n");
+
 	// ここからbvのlwipに向かわせる
 	// またはNIC?
 	for (int i=0; i< sizeof tmpbuffs;i++){
@@ -1299,16 +1275,15 @@ _net_write(char *buf, int size)
 static int
 _net_read(char *buf, int size)
 {
-	printf("bv read buf: %s\n", buf);
 	printf("bv read buf size: %d\n", size);
 
 	int ret_size = 0;
 
 	ret_size = sizeof tmpbuffs;
-	printf("tmpbuf: %s\n", tmpbuffs);
+	// printf("tmpbuf: %s\n", tmpbuffs);
 	memcpy(buf, tmpbuffs, 9);
 	// buf = tmpbuffs;
-	printf("returning buf: %s\n", buf);
+	// printf("returning buf: %s\n", buf);
 
 	return ret_size;
 }
