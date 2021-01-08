@@ -355,6 +355,7 @@ vt__vmcs_init (void)
 		exitctl_efer |= VMCS_VMEXIT_CTL_LOAD_IA32_EFER_BIT;
 		entryctl_efer |= VMCS_VMENTRY_CTL_LOAD_IA32_EFER_BIT;
 	}
+	// exitctl_efer |= VMCS_VMEXIT_CTL_SAVE_PREEMPT_TIMER_VAL_BIT;
 
 	/* get current information */
 	vt_get_current_regs_in_vmcs (&host_riv);
@@ -399,10 +400,11 @@ vt__vmcs_init (void)
 		asm_vmwrite64 (VMCS_GUEST_IA32_EFER, 0);
 	/* 32-Bit Control Fields */
 	asm_vmwrite (VMCS_PIN_BASED_VMEXEC_CTL,
-		     (VMCS_PIN_BASED_VMEXEC_CTL_EXINTEXIT_BIT |
+		     ((VMCS_PIN_BASED_VMEXEC_CTL_EXINTEXIT_BIT |
 		      VMCS_PIN_BASED_VMEXEC_CTL_NMIEXIT_BIT |
 		      VMCS_PIN_BASED_VMEXEC_CTL_VIRTNMIS_BIT |
-		      pinbased_ctls_or) & pinbased_ctls_and);
+			  VMCS_PIN_BASED_VMEXEC_CTL_PREEMPTION_TIMER_BIT |
+		      pinbased_ctls_or) & pinbased_ctls_and));
 	asm_vmwrite (VMCS_PROC_BASED_VMEXEC_CTL,
 		     (/* XXX: VMCS_PROC_BASED_VMEXEC_CTL_HLTEXIT_BIT */0 |
 		      VMCS_PROC_BASED_VMEXEC_CTL_INVLPGEXIT_BIT |
@@ -453,6 +455,7 @@ vt__vmcs_init (void)
 	asm_vmwrite (VMCS_GUEST_ACTIVITY_STATE,
 		     VMCS_GUEST_ACTIVITY_STATE_ACTIVE);
 	asm_vmwrite (VMCS_GUEST_IA32_SYSENTER_CS, sysenter_cs);
+	asm_vmwrite (VMCS_GUEST_PREEMPTION_TIMER_VALUE, VMCS_PREEMPTION_TIME_VALUE);
 	/* 32-Bit Host-State Field */
 	asm_vmwrite (VMCS_HOST_IA32_SYSENTER_CS, sysenter_cs);
 	/* Natural-Width Control Fields */
