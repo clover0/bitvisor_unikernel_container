@@ -1134,11 +1134,11 @@ vt__exit_reason (void)
 	case EXIT_REASON_VMRESUME:
 		do_vmresume ();
 		break;
-	case EXIT_REASON_VMX_PREEMPT_TIMER:
+	// case EXIT_REASON_VMX_PREEMPT_TIMER:
 		// panic("preempt timer ! \n");
-		printf("do preemption timer \n");
-		add_ip ();
-		break;
+		// printf("do preemption timer \n");
+		// add_ip ();
+		// break;
 	default:
 		printf ("Fatal error: handler not implemented.\n");
 		printexitreason (exit_reason);
