@@ -1039,6 +1039,11 @@ do_vmresume (void)
 }
 
 static void
+do_reset_premept_timer (void){
+	asm_vmwrite(VMCS_GUEST_PREEMPTION_TIMER_VALUE, VMCS_PREEMPTION_TIME_VALUE);
+}
+
+static void
 vt__exit_reason (void)
 {
 	ulong exit_reason;
@@ -1134,11 +1139,10 @@ vt__exit_reason (void)
 	case EXIT_REASON_VMRESUME:
 		do_vmresume ();
 		break;
-	// case EXIT_REASON_VMX_PREEMPT_TIMER:
-		// panic("preempt timer ! \n");
-		// printf("do preemption timer \n");
-		// add_ip ();
-		// break;
+	case EXIT_REASON_VMX_PREEMPT_TIMER:
+		printf("do preemption timer \n");
+		do_reset_premept_timer();
+		break;
 	default:
 		printf ("Fatal error: handler not implemented.\n");
 		printexitreason (exit_reason);
