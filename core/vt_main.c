@@ -1140,7 +1140,6 @@ vt__exit_reason (void)
 		do_vmresume ();
 		break;
 	case EXIT_REASON_VMX_PREEMPT_TIMER:
-		printf("do preemption timer \n");
 		do_reset_premept_timer();
 		break;
 	default:

@@ -81,10 +81,12 @@ struct config_data config = {
 	},
 	.ip = {
 		.use_dhcp = 0, // changed
-		// .ipaddr = {192,168,12,111}, // changed
-		.ipaddr = {192,168,0,190}, // changed 自宅
+		// .ipaddr = {192,168,0,196}, // changed 自宅desktop
+		// .ipaddr = {192,168,0,196}, // changed 自宅
+		.ipaddr = {172,16,189,132}, // changed VWware上
 		.netmask = {255,255,255,0}, // changed
-		.gateway = {192,168,0,1}, // tplink
+		.gateway = {172,16,189,1}, // changed VWware上
+		// .gateway = {192,168,0,1}, // 自宅
 	},
 	.storage = {
 		.keys[0] = {
@@ -131,7 +133,7 @@ struct config_data config = {
 	.vmm = {
 		.f11panic = 1,
 		.f12msg = 1,
-		.auto_reboot = 1,
+		.auto_reboot = 0,
 		.panic_reboot = 0,
 		.shell = 1,
 		.dbgsh = 1,
@@ -155,11 +157,16 @@ struct config_data config = {
 			// .ata = 1, // net=ip,ippass NICをbitvisorが占有、ゲストに見せる
 			// rtl8196はvirtioの仮想デバイス化は使えない
 			// .pci = "device=pro1000, driver=pro1000, virtio=1, net=ippass, tty=1,"
+
+			.pci = "device=pro1000, driver=pro1000, net=container, tty=0" // ippassがなんだか使えない...
+			// .pci = "device=rtl8169, driver=rtl8169, net=container, tty=0" // 
 			
 			// 研究室マシン
 			// .pci = "device=pro1000, driver=pro1000, net=ippass, tty=0"
+
 			// pro1000,ippass,virtio これでゲストOSのIOをフック
-			.pci = "device=pro1000, driver=pro1000, net=ippass, virtio=1, tty=0"
+			// .pci = "device=pro1000, driver=pro1000, net=ippass, virtio=1, tty=0"
+
 			// .pci = "device=pro1000, driver=monitor, time=10"
 			// .pci = "device=pro1000, driver=pro1000, net=ippass,and, slot=01:00.0, driver=nvme"
 			// 自宅notePCの設定 realteck はippassうまく動かない

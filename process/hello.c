@@ -198,7 +198,7 @@ mkudp(char *buf, char *src, int sport, char *dst, int dport,
 	return datalen + 8 + 20;
 }
 
-const int itr_count = 1000;
+const int itr_count = 10;
 int test_io_netsend_peformance() {
 	// Linux 上でも同一になりそうなコードがよい
 	// UDP パケットをつくる
@@ -247,7 +247,7 @@ int _start(int a1, int a2) {
 	struct msgbuf mbuf;
 	printf("%s\n", hello);
 	// test_bv_read_write();
-	// test_io_netsend_peformance();
+	test_io_netsend_peformance();
 	// do_sys_nop();
 	// page_fault_exception();
 	// int md = msgopen("ttyout");

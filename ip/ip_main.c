@@ -260,9 +260,6 @@ ip_main_init (struct ip_main_netif *netif_arg, int netif_num)
 	/* Initialize TCP/IP Stack. */
 	lwip_init ();
 
-	/* Initialize HTTP */
-	httpd_init();
-
 	/* Allocate context. */
 	tcpip_context = mem_malloc (sizeof *tcpip_context);
 	LWIP_ASSERT ("tcpip_context", tcpip_context);

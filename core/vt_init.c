@@ -419,8 +419,8 @@ vt__vmcs_init (void)
 	asm_vmwrite (VMCS_PAGEFAULT_ERRCODE_MATCH, 0);
 	asm_vmwrite (VMCS_CR3_TARGET_COUNT, 0);
 	asm_vmwrite (VMCS_VMEXIT_CTL, (exit_ctls_or & exit_ctls_and) |
-			exitctl64 | exitctl_efer | VMCS_VMEXIT_CTL_SAVE_PREEMPT_TIMER_VAL_BIT);
-		    //  exitctl64 | exitctl_efer);
+			// exitctl64 | exitctl_efer | VMCS_VMEXIT_CTL_SAVE_PREEMPT_TIMER_VAL_BIT);
+		     exitctl64 | exitctl_efer);
 	asm_vmwrite (VMCS_VMEXIT_MSR_STORE_COUNT, 0);
 	asm_vmwrite (VMCS_VMEXIT_MSR_LOAD_COUNT, 0);
 	asm_vmwrite (VMCS_VMENTRY_CTL, (entry_ctls_or & entry_ctls_and) |

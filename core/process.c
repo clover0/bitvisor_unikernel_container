@@ -438,8 +438,8 @@ found:
 #endif
 	process[pid].msgdsc[0].func = (void *)rip;
 	printf("alloc for TLS\n");
-	mm_process_map_alloc (0, PAGESIZE * 100);
-	memset ((void *)0x0, 0, PAGESIZE * 100);
+	mm_process_map_alloc (0, PAGESIZE * 1000);
+	memset ((void *)0x0, 0, PAGESIZE * 1000);
 	mm_process_switch (mm_phys);
 	spinlock_unlock (&process_lock);
 	return _msgopen_2 (frompid, pid, gen, 0);
@@ -1241,49 +1241,28 @@ mkudp (char *buf, char *src, int sport, char *dst, int dport,
 	return datalen + 8 + 20;
 }
 
-static char tmpbuffs[200];
 static int
 _net_write(char *buf, int size)
 {
-
 	int ret_size = 0;
 	int len = 0;
 
-	printf("do bv net write \n");
-
-	// ここからbvのlwipに向かわせる
-	// またはNIC?
-	for (int i=0; i< sizeof tmpbuffs;i++){
-		if (!buf)
-			break;
-		tmpbuffs[i] = *buf;
-		buf++;
-		len++;
-	}
+	// for (int i = 0; i < size; i++){
+	// 	printf("%x:", buf[i]);
+	// }
+	// printf("\n");
 	
-	ret_size = len;
+	containernet_write(buf, size);
 
-	// net側を操作したい
-	// 1. とりあえずここでパケットつくる
-	// 2. パケットをNICに送りたい
-	
-	containernet_write(tmpbuffs, len);
-
-	return ret_size;
+	return size;
 }
 
-static int
-_net_read(char *buf, int size)
+static unsigned int
+_net_read(char *buf, unsigned int size)
 {
-	printf("bv read buf size: %d\n", size);
-
-	int ret_size = 0;
-
-	ret_size = sizeof tmpbuffs;
-	// printf("tmpbuf: %s\n", tmpbuffs);
-	memcpy(buf, tmpbuffs, 9);
-	// buf = tmpbuffs;
-	// printf("returning buf: %s\n", buf);
+	unsigned int ret_size = 0;
+	
+	containernet_read(buf, size, &ret_size);
 
 	return ret_size;
 }
@@ -1306,23 +1285,16 @@ bv_net_read (ulong ip, ulong sp, ulong num, ulong si, ulong di)
 	return _net_read(buf, size);
 }
 
-static int
-_get_time(unsigned long *time)
+static unsigned long
+_get_time()
 {
-	unsigned long _time = 0;
-
-	_time = (unsigned long)get_cpu_time();
-	memcpy(time, &_time, sizeof _time);
-
-	return 0;
+	return (unsigned long long)get_cpu_time();
 }
 
 ulong
 bv_get_time (ulong ip, ulong sp, ulong num, ulong si, ulong di)
 {
-	unsigned long *time = (unsigned long *)si;
-
-	return _get_time(time);
+	return _get_time();
 }
 
 static syscall_func_t syscall_table[NUM_OF_SYSCALLS] = {

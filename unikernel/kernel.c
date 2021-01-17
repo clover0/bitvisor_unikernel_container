@@ -126,7 +126,7 @@ static void new_uklprocess() {
 static void new_container() {
 	int tid;
 	INFO("create ukl thread\n");
-	tid = thread_new(new_uklprocess, NULL, 0x1000 * 1024 * 1); // stack 4K * 1024 * 2
+	tid = thread_new(new_uklprocess, NULL, 0x1000 * 1024 * 2); // stack 4K * 1024 * 2
 	// new_uklprocess();
 	INFO("thread id: %d\n", tid);
 	return;
@@ -136,7 +136,6 @@ static void
 unikernel_init(void) {
 	int d1, ukld;
 	void *handle;
-
 	// INFO("init ukl timer\n");
 	// timer_set(handle, 1000 * 1000 * 11); // 11秒後
 
