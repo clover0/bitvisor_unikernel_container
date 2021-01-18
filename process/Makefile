@@ -1,8 +1,6 @@
 CFLAGS += -Iprocess/lib
 
-bins-1 += debug helpinit log panic recvexample sendexample sendint hello unikernelctl
-bins-1 += unikernel #kernel
-#bins-1 += osv
+bins-1 += debug helpinit log panic recvexample sendexample sendint hello
 bins-1 += serialtest shell
 bins-$(CONFIG_IDMAN) += idman
 bins-$(CONFIG_STORAGE) += storage
@@ -14,10 +12,6 @@ bins-$(CONFIG_PCI_MONITOR) += monitor
 includeosbins_ = includeos
 
 unikernelbins =
-#unikernelbins += osv
-# unikernelbins += kernel
-
-extappbins-1 = ext_app
 
 debug-objs = debug.o
 help-objs = help.o
@@ -38,12 +32,3 @@ vpn-libs = vpn/lib/$(outa) crypto/$(outa)
 echoctl-objs = echoctl.o
 monitor-objs = monitor.o
 hello-objs = hello.o
-extappobjs = ext_app.o
-unikernelctl-objs = unikernelctl.o
-#osv-objs = osv.o
-unikernel-objs = unikernel.o
-unikernel-libs = unikernel/lib/$(outa)
-#kernel-objs = kernel.elf
-
-kernel-uklobjs = kernel.elf
-#osv-uklobjs = osv.o
