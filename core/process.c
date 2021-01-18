@@ -260,34 +260,6 @@ process_load (void *bin)
 	return ehdr->e_entry;
 }
 
-static ulong
-process_load2 (void *bin)
-{
-	u8 *b;
-	ELF_EHDR *ehdr;
-	ELF_PHDR *phdr;
-	unsigned int i;
-
-	b = bin;
-	if (b[0] != 0x7F && b[1] != 'E' && b[2] != 'L' && b[3] != 'F')
-		return 0;
-	ehdr = bin;
-	phdr = (ELF_PHDR *)((u8 *)bin + ehdr->e_phoff);
-	for (i = ehdr->e_phnum; i;
-	     i--, phdr = (ELF_PHDR *)((u8 *)phdr + ehdr->e_phentsize)) {
-		if (phdr->p_type == PT_LOAD) {
-			if (phdr->p_memsz > 0){
-				load_bin (phdr->p_vaddr,
-					phdr->p_memsz + PAGESIZE2M * 25, // TODO
-					(u8 *)bin + phdr->p_offset,
-					phdr->p_filesz);
-			}
-		}
-	}
-
-	return ehdr->e_entry;
-}
-
 /* for internal use */
 static int
 _msgopen_2 (int pid, int mpid, int mgen, int mdesc)
@@ -407,7 +379,7 @@ found:
 	process[pid].valid = true;
 	clearmsgdsc (process[pid].msgdsc);
 	mm_phys = mm_process_switch (phys);
-	if (!(rip = process_load2 (bin))) { /* load a program */
+	if (!(rip = process_load (bin))) { /* load a program */
 		printf ("process_load failed.\n");
 		process[pid].valid = false;
 		pid = 0;
@@ -437,7 +409,7 @@ found:
 						false);
 #endif
 	process[pid].msgdsc[0].func = (void *)rip;
-	printf("alloc for TLS\n");
+	// alloc for TLS
 	mm_process_map_alloc (0, PAGESIZE * 1000);
 	memset ((void *)0x0, 0, PAGESIZE * 1000);
 	mm_process_switch (mm_phys);
