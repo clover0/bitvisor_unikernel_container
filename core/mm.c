@@ -1359,18 +1359,6 @@ mm_process_alloc (phys_t *phys2)
 	return 0;
 }
 
-int
-mm_process_alloc2 (phys_t *phys2)
-{
-	void *virt;
-	phys_t phys;
-
-	alloc_pages (&virt, &phys, 2048);
-	process_create_initial_map (virt, phys);
-	*phys2 = phys;
-	return 0;
-}
-
 void
 mm_process_free (phys_t phys)
 {

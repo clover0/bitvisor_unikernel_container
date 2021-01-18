@@ -46,7 +46,6 @@
 #include "string.h"
 #include "types.h"
 #include "container.h"
-#include "arith.h"
 #include "time.h"
 
 #define NUM_OF_SYSCALLS 32
@@ -70,11 +69,6 @@ struct msgdsc_data {
 	void *func;
 };
 
-struct mm_struct {
-	u64 heap_start;
-	u64 heap_end;
-};
-
 struct process_data {
 	bool valid;
 	phys_t mm_phys;
@@ -84,7 +78,6 @@ struct process_data {
 	bool exitflag;
 	bool setlimit;
 	int stacksize;
-	struct mm_struct mm;
 };
 
 extern ulong volatile syscallstack asm ("%gs:gs_syscallstack");
@@ -94,10 +87,6 @@ static bool process_initialized = false;
 
 int getpid(void){
 	return currentcpu->pid;
-}
-
-int get_heap_start(void) {
-	return (int)process[currentcpu->pid].mm.heap_start;
 }
 
 static bool
@@ -1151,7 +1140,6 @@ _iopl (int level)
 int
 iopl (int level)
 {
-	printf ("call iopl for kernel\n");
 	return _iopl(level);
 
 }
@@ -1159,8 +1147,6 @@ iopl (int level)
 ulong
 sys_iopl (ulong ip, ulong sp, ulong num, ulong si, ulong di)
 {
-	printf ("sys iopl\n");
-	printf ("arg %lu\n", (unsigned long)si);
 	return _iopl((int)si);
 }
 
@@ -1174,13 +1160,6 @@ ulong
 bv_yield (ulong ip, ulong sp, ulong num, ulong si, ulong di)
 {
 	return yield();
-}
-
-static void
-wshort (char *off, unsigned short x)
-{
-	off[0] = (x >> 8);
-	off[1] = x;
 }
 
 static int

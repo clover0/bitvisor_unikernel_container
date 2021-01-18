@@ -68,8 +68,8 @@ $(defouta) : $(objs) $(dir)$(depends)
 $(defoutp) : $(bins) $(includeosbins) $(dir)$(depends) $(dir)$(objects)
 	$(V-info) LD $(defoutp)
 	echo $(defoutp)
-	echo $(CC) $(ASFLAGS) $(LDFLAGS) -Wl,-r -o $(defoutp) $(bins:%=%.s) $(uklbins:%=%.s) $(extappbins:%=%.s) $(includeosbins:%=%.s)
-	$(CC) $(ASFLAGS) $(LDFLAGS) -Wl,-r -o $(defoutp) $(bins:%=%.s) $(uklbins:%=%.s) $(extappbins:%=%.s) $(includeosbins:%=%.s)
+	echo $(CC) $(ASFLAGS) $(LDFLAGS) -Wl,-r -o $(defoutp) $(bins:%=%.s) $(includeosbins:%=%.s)
+	$(CC) $(ASFLAGS) $(LDFLAGS) -Wl,-r -o $(defoutp) $(bins:%=%.s) $(includeosbins:%=%.s)
 	echo "defoutp"
 
 $(includeosbins) : #$(includeosbins_)
@@ -84,7 +84,6 @@ $(includeosbins) : #$(includeosbins_)
 	echo 'prc_$(*F)_bin_end:' >> $@.s
 
 $(bins) : $(bobjs) $(blibs-1) $(objs) $(dir)$(boptions)
-	echo "bins"
 	$(V-info) LD $@
 	echo '.section .processes' > $@.s
 	echo '.long prc_$(*F)_name, 0, prc_$(*F)_bin, 0' >> $@.s

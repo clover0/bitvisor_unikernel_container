@@ -72,6 +72,5 @@ void exitprocess (int retval);
 long msgpremapbuf (int desc, struct msgbuf *buf);
 int iopl (int level);
 int getpid(void);
-int get_heap_start(void);
 
 #endif
