@@ -1183,36 +1183,6 @@ wshort (char *off, unsigned short x)
 	off[1] = x;
 }
 
-// for check
-static int
-mkudp (char *buf, char *src, int sport, char *dst, int dport,
-       char *data, int datalen)
-{
-	u16 sum;
-
-	// IPv4 ヘッダ
-	/* TTL=64 */
-	memcpy (buf, "\x45\x00\x00\x00\x00\x01\x00\x00\x40\x11\x00\x00", 12);
-	wshort (buf + 2,  datalen + 8 + 20);
-	memcpy (buf + 12, src, 4);
-	memcpy (buf + 16, dst, 4);
-
-	// UDPヘッダ
-	wshort (buf + 20, sport);
-	wshort (buf + 22, dport);
-	wshort (buf + 24, datalen + 8);
-	memcpy (buf + 26, "\x00\x11", 2); // check sum 
-	memcpy (buf + 28, data, datalen); // UDP data
-
-	sum = ~ipchecksum (buf + 12, datalen + 16);
-	memcpy (buf + 26, &sum, 2);
-	sum = ipchecksum (buf + 24, 4);
-	memcpy (buf + 26, &sum, 2);
-	sum = ipchecksum (buf, 20);
-	memcpy (buf + 10, &sum, 2);
-	return datalen + 8 + 20;
-}
-
 static int
 _net_write(char *buf, int size)
 {
