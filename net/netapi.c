@@ -250,17 +250,8 @@ net_tty_send (void *tty_handle, void *packet, unsigned int packet_size)
 
 static void
 net_container_send(void *containernet_handle, void *packet, unsigned int packet_size) {
-	char mac_address[6] = {
-		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-	// char mac_address[6] = {
-		// 0x22, 0x22, 0x22, 0x22, 0x22, 0x22};
-
 	struct netdata *handle = containernet_handle;
-	char *pkt;
 
-	// pkt = packet;
-	// memcpy(pkt + 0, mac_address, 6);
-	// memcpy(pkt + 6, handle->mac_address, 6);
 	handle->container_phys_func->send(handle->container_phys_handle, 1, &packet,
 									  &packet_size, false);
 }
@@ -289,6 +280,15 @@ net_container_packet_add (struct container_packet *p)
 	spinlock_lock (&container_packet_lock);
 	LIST1_ADD (container_packet_list, p);
 	spinlock_unlock (&container_packet_lock);
+}
+
+void
+container_net_main_poll (void *handle)
+{
+	struct net_container_data *p = handle;
+
+	if (p->phys_func->poll)
+		p->phys_func->poll (p->phys_handle);
 }
 
 static void containernet_main_task (void *handle)
@@ -358,15 +358,6 @@ net_container_phys_recv (void *handle, unsigned int num_packets, void **packets,
 	struct net_container_data *p = param;
 
 	net_container_main_input_queue (p, packets, packet_sizes, num_packets);
-}
-
-void
-container_net_main_poll (void *handle)
-{
-	struct net_container_data *p = handle;
-
-	if (p->phys_func->poll)
-		p->phys_func->poll (p->phys_handle);
 }
 
 static void
