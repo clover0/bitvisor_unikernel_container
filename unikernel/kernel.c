@@ -23,6 +23,7 @@ static int ukl_kernel_msghandler(int m, int c, struct msgbuf *buf, int bufcnt) {
 
 static void new_uklprocess() {
 	INFO("create ukl process\n");
+	INFO("started at %lld\n", get_time()); // get_time=micro sec
 	int d, d1;
 	d = newprocess2("includeos");
 	if (d < 0) {
@@ -54,7 +55,6 @@ static void new_container() {
 static void
 unikernel_init(void) {
 	int d1, ukld;
-	void *handle;
 
 	ukld = msgregister("ukl", ukl_kernel_msghandler);
 	if (ukld < 0)
@@ -63,6 +63,15 @@ unikernel_init(void) {
 
 	INFO("new container\n");
 	new_container();
+	new_container();
+	new_container();
+	new_container();
+	new_container();//5
+	new_container();
+	new_container();
+	new_container();
+	new_container();
+	new_container();//10
 	INFO("containers started \n");
 
 	d1 = msgopen("ttyout");
