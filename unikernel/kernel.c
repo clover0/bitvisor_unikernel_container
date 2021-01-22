@@ -47,7 +47,7 @@ static void new_uklprocess() {
 static void new_container() {
 	int tid;
 	INFO("create ukl thread\n");
-	tid = thread_new(new_uklprocess, NULL, 0x1000 * 1024 * 2); // stack 4K * 1024 * 2
+	tid = thread_new(new_uklprocess, NULL, 0x1000 * 1024 * 1); // stack 4K * 1024 * 2
 	INFO("thread id: %d\n", tid);
 	return;
 }
