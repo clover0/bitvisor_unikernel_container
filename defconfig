@@ -145,9 +145,9 @@ struct config_data config = {
 			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
 		},
 		.tty_syslog = {
-			.enable = 0, // changed
-			.src_ipaddr = { 192, 168, 0, 64 }, // changed
-			.dst_ipaddr = { 192, 168, 0, 27 }, // changed
+			.enable = 1, // changed
+			.src_ipaddr = { 192, 168, 0, 100 }, // changed
+			.dst_ipaddr = { 192, 168, 0, 181 }// changed
 		},
 		.tty_pro1000 = 0, // changed
 		.tty_rtl8169 = 0, // changed
@@ -158,8 +158,8 @@ struct config_data config = {
 			// rtl8196はvirtioの仮想デバイス化は使えない
 			// .pci = "device=pro1000, driver=pro1000, virtio=1, net=ippass, tty=1,"
 
-			.pci = "device=pro1000, driver=pro1000, net=container, tty=0" // ippassがなんだか使えない...
-			// .pci = "device=rtl8169, driver=rtl8169, net=container, tty=0" // 
+			.pci = "device=pro1000, driver=pro1000, net=container, tty=1" // ippassがなんだか使えない...
+			// ",and, device=rtl8169, driver=rtl8169, tty=1" // 
 			
 			// 研究室マシン
 			// .pci = "device=pro1000, driver=pro1000, net=ippass, tty=0"

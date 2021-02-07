@@ -63,15 +63,15 @@ unikernel_init(void) {
 
 	INFO("new container\n");
 	new_container();
-	new_container();
-	new_container();
-	new_container();
-	new_container();//5
-	new_container();
-	new_container();
-	new_container();
-	new_container();
-	new_container();//10
+	// new_container();
+	// new_container();
+	// new_container();
+	// new_container();//5
+	// new_container();
+	// new_container();
+	// new_container();
+	// new_container();
+	// new_container();//10
 	INFO("containers started \n");
 
 	d1 = msgopen("ttyout");
