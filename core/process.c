@@ -340,8 +340,7 @@ process_new2 (int frompid, void *bin, int stacksize)
 	int pid, gen;
 	u64 phys;
 	ulong rip;
-	phys_t mm_phys, heap_phys;
-	void *heap_virt;
+	phys_t mm_phys ;
 
 	spinlock_lock (&process_lock);
 	for (pid = 1; pid < NUM_OF_PID; pid++) {
@@ -1107,14 +1106,6 @@ bv_yield (ulong ip, ulong sp, ulong num, ulong si, ulong di)
 static int
 _net_write(char *buf, int size)
 {
-	int ret_size = 0;
-	int len = 0;
-
-	// for (int i = 0; i < size; i++){
-	// 	printf("%x:", buf[i]);
-	// }
-	// printf("\n");
-	
 	containernet_write(buf, size);
 
 	return size;
