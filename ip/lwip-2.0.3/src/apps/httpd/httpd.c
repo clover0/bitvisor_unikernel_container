@@ -98,9 +98,9 @@
 #include "lwip/ip.h"
 #include "lwip/tcp.h"
 
-// #include <string.h> /* memset */
-// #include <stdlib.h> /* atoi */ // required when POST request
-// #include <stdio.h>
+#include <string.h> /* memset */
+#include <stdlib.h> /* atoi */
+#include <stdio.h>
 
 #if LWIP_TCP && LWIP_CALLBACK_API
 
@@ -330,17 +330,6 @@ int http_cgi_paramcount;
 char *http_cgi_params[LWIP_HTTPD_MAX_CGI_PARAMETERS]; /* Params extracted from the request URI */
 char *http_cgi_param_vals[LWIP_HTTPD_MAX_CGI_PARAMETERS]; /* Values for each extracted param */
 #endif /* LWIP_HTTPD_CGI */
-
-static inline char *
-strchr (char *s, int c)
-{
-	while (*s) {
-		if (*s == c)
-			return s;
-		s++;
-	}
-	return 0;
-}
 
 #if LWIP_HTTPD_KILL_OLD_ON_CONNECTIONS_EXCEEDED
 /** global list of active HTTP connections, use to kill the oldest when
@@ -671,6 +660,75 @@ http_eof(struct tcp_pcb *pcb, struct http_state *hs)
   }
 }
 
+#if LWIP_HTTPD_CGI || LWIP_HTTPD_CGI_SSI
+/**
+ * Extract URI parameters from the parameter-part of an URI in the form
+ * "test.cgi?x=y" @todo: better explanation!
+ * Pointers to the parameters are stored in hs->param_vals.
+ *
+ * @param hs http connection state
+ * @param params pointer to the NULL-terminated parameter string from the URI
+ * @return number of parameters extracted
+ */
+static int
+extract_uri_parameters(struct http_state *hs, char *params)
+{
+  char *pair;
+  char *equals;
+  int loop;
+
+  LWIP_UNUSED_ARG(hs);
+
+  /* If we have no parameters at all, return immediately. */
+  if(!params || (params[0] == '\0')) {
+      return(0);
+  }
+
+  /* Get a pointer to our first parameter */
+  pair = params;
+
+  /* Parse up to LWIP_HTTPD_MAX_CGI_PARAMETERS from the passed string and ignore the
+   * remainder (if any) */
+  for(loop = 0; (loop < LWIP_HTTPD_MAX_CGI_PARAMETERS) && pair; loop++) {
+
+    /* Save the name of the parameter */
+    http_cgi_params[loop] = pair;
+
+    /* Remember the start of this name=value pair */
+    equals = pair;
+
+    /* Find the start of the next name=value pair and replace the delimiter
+     * with a 0 to terminate the previous pair string. */
+    pair = strchr(pair, '&');
+    if(pair) {
+      *pair = '\0';
+      pair++;
+    } else {
+       /* We didn't find a new parameter so find the end of the URI and
+        * replace the space with a '\0' */
+        pair = strchr(equals, ' ');
+        if(pair) {
+            *pair = '\0';
+        }
+
+        /* Revert to NULL so that we exit the loop as expected. */
+        pair = NULL;
+    }
+
+    /* Now find the '=' in the previous pair, replace it with '\0' and save
+     * the parameter value string. */
+    equals = strchr(equals, '=');
+    if(equals) {
+      *equals = '\0';
+      http_cgi_param_vals[loop] = equals + 1;
+    } else {
+      http_cgi_param_vals[loop] = NULL;
+    }
+  }
+
+  return loop;
+}
+#endif /* LWIP_HTTPD_CGI || LWIP_HTTPD_CGI_SSI */
 
 #if LWIP_HTTPD_SSI
 /**
@@ -1120,6 +1178,330 @@ http_send_data_nonssi(struct tcp_pcb *pcb, struct http_state *hs)
   return data_to_send;
 }
 
+#if LWIP_HTTPD_SSI
+/** Sub-function of http_send(): This is the send-routine for ssi files
+ *
+ * @returns: - 1: data has been written (so call tcp_ouput)
+ *           - 0: no data has been written (no need to call tcp_output)
+ */
+static u8_t
+http_send_data_ssi(struct tcp_pcb *pcb, struct http_state *hs)
+{
+  err_t err = ERR_OK;
+  u16_t len;
+  u8_t data_to_send = 0;
+
+  struct http_ssi_state *ssi = hs->ssi;
+  LWIP_ASSERT("ssi != NULL", ssi != NULL);
+  /* We are processing an SHTML file so need to scan for tags and replace
+   * them with insert strings. We need to be careful here since a tag may
+   * straddle the boundary of two blocks read from the file and we may also
+   * have to split the insert string between two tcp_write operations. */
+
+  /* How much data could we send? */
+  len = tcp_sndbuf(pcb);
+
+  /* Do we have remaining data to send before parsing more? */
+  if(ssi->parsed > hs->file) {
+    len = (u16_t)LWIP_MIN(ssi->parsed - hs->file, 0xffff);
+
+    err = http_write(pcb, hs->file, &len, HTTP_IS_DATA_VOLATILE(hs));
+    if (err == ERR_OK) {
+      data_to_send = 1;
+      hs->file += len;
+      hs->left -= len;
+    }
+
+    /* If the send buffer is full, return now. */
+    if(tcp_sndbuf(pcb) == 0) {
+      return data_to_send;
+    }
+  }
+
+  LWIP_DEBUGF(HTTPD_DEBUG, ("State %d, %d left\n", ssi->tag_state, (int)ssi->parse_left));
+
+  /* We have sent all the data that was already parsed so continue parsing
+   * the buffer contents looking for SSI tags. */
+  while((ssi->parse_left) && (err == ERR_OK)) {
+    if (len == 0) {
+      return data_to_send;
+    }
+    switch(ssi->tag_state) {
+      case TAG_NONE:
+        /* We are not currently processing an SSI tag so scan for the
+         * start of the lead-in marker. */
+        if(*ssi->parsed == g_pcTagLeadIn[0]) {
+          /* We found what could be the lead-in for a new tag so change
+           * state appropriately. */
+          ssi->tag_state = TAG_LEADIN;
+          ssi->tag_index = 1;
+#if !LWIP_HTTPD_SSI_INCLUDE_TAG
+          ssi->tag_started = ssi->parsed;
+#endif /* !LWIP_HTTPD_SSI_INCLUDE_TAG */
+        }
+
+        /* Move on to the next character in the buffer */
+        ssi->parse_left--;
+        ssi->parsed++;
+        break;
+
+      case TAG_LEADIN:
+        /* We are processing the lead-in marker, looking for the start of
+         * the tag name. */
+
+        /* Have we reached the end of the leadin? */
+        if(ssi->tag_index == LEN_TAG_LEAD_IN) {
+          ssi->tag_index = 0;
+          ssi->tag_state = TAG_FOUND;
+        } else {
+          /* Have we found the next character we expect for the tag leadin? */
+          if(*ssi->parsed == g_pcTagLeadIn[ssi->tag_index]) {
+            /* Yes - move to the next one unless we have found the complete
+             * leadin, in which case we start looking for the tag itself */
+            ssi->tag_index++;
+          } else {
+            /* We found an unexpected character so this is not a tag. Move
+             * back to idle state. */
+            ssi->tag_state = TAG_NONE;
+          }
+
+          /* Move on to the next character in the buffer */
+          ssi->parse_left--;
+          ssi->parsed++;
+        }
+        break;
+
+      case TAG_FOUND:
+        /* We are reading the tag name, looking for the start of the
+         * lead-out marker and removing any whitespace found. */
+
+        /* Remove leading whitespace between the tag leading and the first
+         * tag name character. */
+        if((ssi->tag_index == 0) && ((*ssi->parsed == ' ') ||
+           (*ssi->parsed == '\t') || (*ssi->parsed == '\n') ||
+           (*ssi->parsed == '\r'))) {
+          /* Move on to the next character in the buffer */
+          ssi->parse_left--;
+          ssi->parsed++;
+          break;
+        }
+
+        /* Have we found the end of the tag name? This is signalled by
+         * us finding the first leadout character or whitespace */
+        if((*ssi->parsed == g_pcTagLeadOut[0]) ||
+           (*ssi->parsed == ' ')  || (*ssi->parsed == '\t') ||
+           (*ssi->parsed == '\n') || (*ssi->parsed == '\r')) {
+
+          if(ssi->tag_index == 0) {
+            /* We read a zero length tag so ignore it. */
+            ssi->tag_state = TAG_NONE;
+          } else {
+            /* We read a non-empty tag so go ahead and look for the
+             * leadout string. */
+            ssi->tag_state = TAG_LEADOUT;
+            LWIP_ASSERT("ssi->tag_index <= 0xff", ssi->tag_index <= 0xff);
+            ssi->tag_name_len = (u8_t)ssi->tag_index;
+            ssi->tag_name[ssi->tag_index] = '\0';
+            if(*ssi->parsed == g_pcTagLeadOut[0]) {
+              ssi->tag_index = 1;
+            } else {
+              ssi->tag_index = 0;
+            }
+          }
+        } else {
+          /* This character is part of the tag name so save it */
+          if(ssi->tag_index < LWIP_HTTPD_MAX_TAG_NAME_LEN) {
+            ssi->tag_name[ssi->tag_index++] = *ssi->parsed;
+          } else {
+            /* The tag was too long so ignore it. */
+            ssi->tag_state = TAG_NONE;
+          }
+        }
+
+        /* Move on to the next character in the buffer */
+        ssi->parse_left--;
+        ssi->parsed++;
+
+        break;
+
+      /* We are looking for the end of the lead-out marker. */
+      case TAG_LEADOUT:
+        /* Remove leading whitespace between the tag leading and the first
+         * tag leadout character. */
+        if((ssi->tag_index == 0) && ((*ssi->parsed == ' ') ||
+           (*ssi->parsed == '\t') || (*ssi->parsed == '\n') ||
+           (*ssi->parsed == '\r'))) {
+          /* Move on to the next character in the buffer */
+          ssi->parse_left--;
+          ssi->parsed++;
+          break;
+        }
+
+        /* Have we found the next character we expect for the tag leadout? */
+        if(*ssi->parsed == g_pcTagLeadOut[ssi->tag_index]) {
+          /* Yes - move to the next one unless we have found the complete
+           * leadout, in which case we need to call the client to process
+           * the tag. */
+
+          /* Move on to the next character in the buffer */
+          ssi->parse_left--;
+          ssi->parsed++;
+
+          if(ssi->tag_index == (LEN_TAG_LEAD_OUT - 1)) {
+            /* Call the client to ask for the insert string for the
+             * tag we just found. */
+#if LWIP_HTTPD_SSI_MULTIPART
+            ssi->tag_part = 0; /* start with tag part 0 */
+#endif /* LWIP_HTTPD_SSI_MULTIPART */
+            get_tag_insert(hs);
+
+            /* Next time through, we are going to be sending data
+             * immediately, either the end of the block we start
+             * sending here or the insert string. */
+            ssi->tag_index = 0;
+            ssi->tag_state = TAG_SENDING;
+            ssi->tag_end = ssi->parsed;
+#if !LWIP_HTTPD_SSI_INCLUDE_TAG
+            ssi->parsed = ssi->tag_started;
+#endif /* !LWIP_HTTPD_SSI_INCLUDE_TAG*/
+
+            /* If there is any unsent data in the buffer prior to the
+             * tag, we need to send it now. */
+            if (ssi->tag_end > hs->file) {
+              /* How much of the data can we send? */
+#if LWIP_HTTPD_SSI_INCLUDE_TAG
+              len = (u16_t)LWIP_MIN(ssi->tag_end - hs->file, 0xffff);
+#else /* LWIP_HTTPD_SSI_INCLUDE_TAG*/
+              /* we would include the tag in sending */
+              len = (u16_t)LWIP_MIN(ssi->tag_started - hs->file, 0xffff);
+#endif /* LWIP_HTTPD_SSI_INCLUDE_TAG*/
+
+              err = http_write(pcb, hs->file, &len, HTTP_IS_DATA_VOLATILE(hs));
+              if (err == ERR_OK) {
+                data_to_send = 1;
+#if !LWIP_HTTPD_SSI_INCLUDE_TAG
+                if(ssi->tag_started <= hs->file) {
+                  /* pretend to have sent the tag, too */
+                  len += ssi->tag_end - ssi->tag_started;
+                }
+#endif /* !LWIP_HTTPD_SSI_INCLUDE_TAG*/
+                hs->file += len;
+                hs->left -= len;
+              }
+            }
+          } else {
+            ssi->tag_index++;
+          }
+        } else {
+          /* We found an unexpected character so this is not a tag. Move
+           * back to idle state. */
+          ssi->parse_left--;
+          ssi->parsed++;
+          ssi->tag_state = TAG_NONE;
+        }
+        break;
+
+      /*
+       * We have found a valid tag and are in the process of sending
+       * data as a result of that discovery. We send either remaining data
+       * from the file prior to the insert point or the insert string itself.
+       */
+      case TAG_SENDING:
+        /* Do we have any remaining file data to send from the buffer prior
+         * to the tag? */
+        if(ssi->tag_end > hs->file) {
+          /* How much of the data can we send? */
+#if LWIP_HTTPD_SSI_INCLUDE_TAG
+          len = (u16_t)LWIP_MIN(ssi->tag_end - hs->file, 0xffff);
+#else /* LWIP_HTTPD_SSI_INCLUDE_TAG*/
+          LWIP_ASSERT("hs->started >= hs->file", ssi->tag_started >= hs->file);
+          /* we would include the tag in sending */
+          len = (u16_t)LWIP_MIN(ssi->tag_started - hs->file, 0xffff);
+#endif /* LWIP_HTTPD_SSI_INCLUDE_TAG*/
+          if (len != 0) {
+            err = http_write(pcb, hs->file, &len, HTTP_IS_DATA_VOLATILE(hs));
+          } else {
+            err = ERR_OK;
+          }
+          if (err == ERR_OK) {
+            data_to_send = 1;
+#if !LWIP_HTTPD_SSI_INCLUDE_TAG
+            if(ssi->tag_started <= hs->file) {
+              /* pretend to have sent the tag, too */
+              len += ssi->tag_end - ssi->tag_started;
+            }
+#endif /* !LWIP_HTTPD_SSI_INCLUDE_TAG*/
+            hs->file += len;
+            hs->left -= len;
+          }
+        } else {
+#if LWIP_HTTPD_SSI_MULTIPART
+          if(ssi->tag_index >= ssi->tag_insert_len) {
+            /* Did the last SSIHandler have more to send? */
+            if (ssi->tag_part != HTTPD_LAST_TAG_PART) {
+              /* If so, call it again */
+              ssi->tag_index = 0;
+              get_tag_insert(hs);
+            }
+          }
+#endif /* LWIP_HTTPD_SSI_MULTIPART */
+
+          /* Do we still have insert data left to send? */
+          if(ssi->tag_index < ssi->tag_insert_len) {
+            /* We are sending the insert string itself. How much of the
+             * insert can we send? */
+            len = (ssi->tag_insert_len - ssi->tag_index);
+
+            /* Note that we set the copy flag here since we only have a
+             * single tag insert buffer per connection. If we don't do
+             * this, insert corruption can occur if more than one insert
+             * is processed before we call tcp_output. */
+            err = http_write(pcb, &(ssi->tag_insert[ssi->tag_index]), &len,
+                             HTTP_IS_TAG_VOLATILE(hs));
+            if (err == ERR_OK) {
+              data_to_send = 1;
+              ssi->tag_index += len;
+              /* Don't return here: keep on sending data */
+            }
+          } else {
+#if LWIP_HTTPD_SSI_MULTIPART
+            if (ssi->tag_part == HTTPD_LAST_TAG_PART)
+#endif /* LWIP_HTTPD_SSI_MULTIPART */
+            {
+              /* We have sent all the insert data so go back to looking for
+               * a new tag. */
+              LWIP_DEBUGF(HTTPD_DEBUG, ("Everything sent.\n"));
+              ssi->tag_index = 0;
+              ssi->tag_state = TAG_NONE;
+#if !LWIP_HTTPD_SSI_INCLUDE_TAG
+              ssi->parsed = ssi->tag_end;
+#endif /* !LWIP_HTTPD_SSI_INCLUDE_TAG*/
+            }
+          }
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  /* If we drop out of the end of the for loop, this implies we must have
+   * file data to send so send it now. In TAG_SENDING state, we've already
+   * handled this so skip the send if that's the case. */
+  if((ssi->tag_state != TAG_SENDING) && (ssi->parsed > hs->file)) {
+    len = (u16_t)LWIP_MIN(ssi->parsed - hs->file, 0xffff);
+
+    err = http_write(pcb, hs->file, &len, HTTP_IS_DATA_VOLATILE(hs));
+    if (err == ERR_OK) {
+      data_to_send = 1;
+      hs->file += len;
+      hs->left -= len;
+    }
+  }
+  return data_to_send;
+}
+#endif /* LWIP_HTTPD_SSI */
+
 /**
  * Try to send more data on this pcb.
  *
@@ -1268,6 +1650,239 @@ http_get_404_file(struct http_state *hs, const char **uri)
 
   return &hs->file_handle;
 }
+
+#if LWIP_HTTPD_SUPPORT_POST
+static err_t
+http_handle_post_finished(struct http_state *hs)
+{
+#if LWIP_HTTPD_POST_MANUAL_WND
+  /* Prevent multiple calls to httpd_post_finished, since it might have already
+     been called before from httpd_post_data_recved(). */
+  if (hs->post_finished) {
+    return ERR_OK;
+  }
+  hs->post_finished = 1;
+#endif /* LWIP_HTTPD_POST_MANUAL_WND */
+  /* application error or POST finished */
+  /* NULL-terminate the buffer */
+  http_uri_buf[0] = 0;
+  httpd_post_finished(hs, http_uri_buf, LWIP_HTTPD_URI_BUF_LEN);
+  return http_find_file(hs, http_uri_buf, 0);
+}
+
+/** Pass received POST body data to the application and correctly handle
+ * returning a response document or closing the connection.
+ * ATTENTION: The application is responsible for the pbuf now, so don't free it!
+ *
+ * @param hs http connection state
+ * @param p pbuf to pass to the application
+ * @return ERR_OK if passed successfully, another err_t if the response file
+ *         hasn't been found (after POST finished)
+ */
+static err_t
+http_post_rxpbuf(struct http_state *hs, struct pbuf *p)
+{
+  err_t err;
+
+  if (p != NULL) {
+    /* adjust remaining Content-Length */
+    if (hs->post_content_len_left < p->tot_len) {
+      hs->post_content_len_left = 0;
+    } else {
+      hs->post_content_len_left -= p->tot_len;
+    }
+  }
+#if LWIP_HTTPD_SUPPORT_POST && LWIP_HTTPD_POST_MANUAL_WND
+  /* prevent connection being closed if httpd_post_data_recved() is called nested */
+  hs->unrecved_bytes++;
+#endif
+  err = httpd_post_receive_data(hs, p);
+#if LWIP_HTTPD_SUPPORT_POST && LWIP_HTTPD_POST_MANUAL_WND
+  hs->unrecved_bytes--;
+#endif
+  if (err != ERR_OK) {
+    /* Ignore remaining content in case of application error */
+    hs->post_content_len_left = 0;
+  }
+  if (hs->post_content_len_left == 0) {
+#if LWIP_HTTPD_SUPPORT_POST && LWIP_HTTPD_POST_MANUAL_WND
+    if (hs->unrecved_bytes != 0) {
+       return ERR_OK;
+    }
+#endif /* LWIP_HTTPD_SUPPORT_POST && LWIP_HTTPD_POST_MANUAL_WND */
+    /* application error or POST finished */
+    return http_handle_post_finished(hs);
+  }
+
+  return ERR_OK;
+}
+
+/** Handle a post request. Called from http_parse_request when method 'POST'
+ * is found.
+ *
+ * @param p The input pbuf (containing the POST header and body).
+ * @param hs The http connection state.
+ * @param data HTTP request (header and part of body) from input pbuf(s).
+ * @param data_len Size of 'data'.
+ * @param uri The HTTP URI parsed from input pbuf(s).
+ * @param uri_end Pointer to the end of 'uri' (here, the rest of the HTTP
+ *                header starts).
+ * @return ERR_OK: POST correctly parsed and accepted by the application.
+ *         ERR_INPROGRESS: POST not completely parsed (no error yet)
+ *         another err_t: Error parsing POST or denied by the application
+ */
+static err_t
+http_post_request(struct pbuf *inp, struct http_state *hs,
+                  char *data, u16_t data_len, char *uri, char *uri_end)
+{
+  err_t err;
+  /* search for end-of-header (first double-CRLF) */
+  char* crlfcrlf = lwip_strnstr(uri_end + 1, CRLF CRLF, data_len - (uri_end + 1 - data));
+
+  if (crlfcrlf != NULL) {
+    /* search for "Content-Length: " */
+#define HTTP_HDR_CONTENT_LEN                "Content-Length: "
+#define HTTP_HDR_CONTENT_LEN_LEN            16
+#define HTTP_HDR_CONTENT_LEN_DIGIT_MAX_LEN  10
+    char *scontent_len = lwip_strnstr(uri_end + 1, HTTP_HDR_CONTENT_LEN, crlfcrlf - (uri_end + 1));
+    if (scontent_len != NULL) {
+      char *scontent_len_end = lwip_strnstr(scontent_len + HTTP_HDR_CONTENT_LEN_LEN, CRLF, HTTP_HDR_CONTENT_LEN_DIGIT_MAX_LEN);
+      if (scontent_len_end != NULL) {
+        int content_len;
+        char *content_len_num = scontent_len + HTTP_HDR_CONTENT_LEN_LEN;
+        content_len = atoi(content_len_num);
+        if (content_len == 0) {
+          /* if atoi returns 0 on error, fix this */
+          if ((content_len_num[0] != '0') || (content_len_num[1] != '\r')) {
+            content_len = -1;
+          }
+        }
+        if (content_len >= 0) {
+          /* adjust length of HTTP header passed to application */
+          const char *hdr_start_after_uri = uri_end + 1;
+          u16_t hdr_len = (u16_t)LWIP_MIN(data_len, crlfcrlf + 4 - data);
+          u16_t hdr_data_len = (u16_t)LWIP_MIN(data_len, crlfcrlf + 4 - hdr_start_after_uri);
+          u8_t post_auto_wnd = 1;
+          http_uri_buf[0] = 0;
+          /* trim http header */
+          *crlfcrlf = 0;
+          err = httpd_post_begin(hs, uri, hdr_start_after_uri, hdr_data_len, content_len,
+            http_uri_buf, LWIP_HTTPD_URI_BUF_LEN, &post_auto_wnd);
+          if (err == ERR_OK) {
+            /* try to pass in data of the first pbuf(s) */
+            struct pbuf *q = inp;
+            u16_t start_offset = hdr_len;
+#if LWIP_HTTPD_POST_MANUAL_WND
+            hs->no_auto_wnd = !post_auto_wnd;
+#endif /* LWIP_HTTPD_POST_MANUAL_WND */
+            /* set the Content-Length to be received for this POST */
+            hs->post_content_len_left = (u32_t)content_len;
+
+            /* get to the pbuf where the body starts */
+            while((q != NULL) && (q->len <= start_offset)) {
+              start_offset -= q->len;
+              q = q->next;
+            }
+            if (q != NULL) {
+              /* hide the remaining HTTP header */
+              pbuf_header(q, -(s16_t)start_offset);
+#if LWIP_HTTPD_POST_MANUAL_WND
+              if (!post_auto_wnd) {
+                /* already tcp_recved() this data... */
+                hs->unrecved_bytes = q->tot_len;
+              }
+#endif /* LWIP_HTTPD_POST_MANUAL_WND */
+              pbuf_ref(q);
+              return http_post_rxpbuf(hs, q);
+            } else if (hs->post_content_len_left == 0) {
+              q = pbuf_alloc(PBUF_RAW, 0, PBUF_REF);
+              return http_post_rxpbuf(hs, q);
+            } else {
+              return ERR_OK;
+            }
+          } else {
+            /* return file passed from application */
+            return http_find_file(hs, http_uri_buf, 0);
+          }
+        } else {
+          LWIP_DEBUGF(HTTPD_DEBUG, ("POST received invalid Content-Length: %s\n",
+            content_len_num));
+          return ERR_ARG;
+        }
+      }
+    }
+    /* If we come here, headers are fully received (double-crlf), but Content-Length
+       was not included. Since this is currently the only supported method, we have
+       to fail in this case! */
+    LWIP_DEBUGF(HTTPD_DEBUG, ("Error when parsing Content-Length\n"));
+    return ERR_ARG;
+  }
+  /* if we come here, the POST is incomplete */
+#if LWIP_HTTPD_SUPPORT_REQUESTLIST
+  return ERR_INPROGRESS;
+#else /* LWIP_HTTPD_SUPPORT_REQUESTLIST */
+  return ERR_ARG;
+#endif /* LWIP_HTTPD_SUPPORT_REQUESTLIST */
+}
+
+#if LWIP_HTTPD_POST_MANUAL_WND
+/** A POST implementation can call this function to update the TCP window.
+ * This can be used to throttle data reception (e.g. when received data is
+ * programmed to flash and data is received faster than programmed).
+ *
+ * @param connection A connection handle passed to httpd_post_begin for which
+ *        httpd_post_finished has *NOT* been called yet!
+ * @param recved_len Length of data received (for window update)
+ */
+void httpd_post_data_recved(void *connection, u16_t recved_len)
+{
+  struct http_state *hs = (struct http_state*)connection;
+  if (hs != NULL) {
+    if (hs->no_auto_wnd) {
+      u16_t len = recved_len;
+      if (hs->unrecved_bytes >= recved_len) {
+        hs->unrecved_bytes -= recved_len;
+      } else {
+        LWIP_DEBUGF(HTTPD_DEBUG | LWIP_DBG_LEVEL_WARNING, ("httpd_post_data_recved: recved_len too big\n"));
+        len = (u16_t)hs->unrecved_bytes;
+        hs->unrecved_bytes = 0;
+      }
+      if (hs->pcb != NULL) {
+        if (len != 0) {
+          tcp_recved(hs->pcb, len);
+        }
+        if ((hs->post_content_len_left == 0) && (hs->unrecved_bytes == 0)) {
+          /* finished handling POST */
+          http_handle_post_finished(hs);
+          http_send(hs->pcb, hs);
+        }
+      }
+    }
+  }
+}
+#endif /* LWIP_HTTPD_POST_MANUAL_WND */
+
+#endif /* LWIP_HTTPD_SUPPORT_POST */
+
+#if LWIP_HTTPD_FS_ASYNC_READ
+/** Try to send more data if file has been blocked before
+ * This is a callback function passed to fs_read_async().
+ */
+static void
+http_continue(void *connection)
+{
+  struct http_state *hs = (struct http_state*)connection;
+  if (hs && (hs->pcb) && (hs->handle)) {
+    LWIP_ASSERT("hs->pcb != NULL", hs->pcb != NULL);
+    LWIP_DEBUGF(HTTPD_DEBUG | LWIP_DBG_TRACE, ("httpd_continue: try to send more data\n"));
+    if (http_send(hs->pcb, hs)) {
+      /* If we wrote anything to be sent, go ahead and send it now. */
+      LWIP_DEBUGF(HTTPD_DEBUG | LWIP_DBG_TRACE, ("tcp_output\n"));
+      tcp_output(hs->pcb);
+    }
+  }
+}
+#endif /* LWIP_HTTPD_FS_ASYNC_READ */
 
 /**
  * When data has been received in the correct state, try to parse it
@@ -1964,5 +2579,51 @@ httpd_init(void)
   tcp_accept(pcb, http_accept);
 }
 
+#if LWIP_HTTPD_SSI
+/**
+ * Set the SSI handler function.
+ *
+ * @param ssi_handler the SSI handler function
+ * @param tags an array of SSI tag strings to search for in SSI-enabled files
+ * @param num_tags number of tags in the 'tags' array
+ */
+void
+http_set_ssi_handler(tSSIHandler ssi_handler, const char **tags, int num_tags)
+{
+  LWIP_DEBUGF(HTTPD_DEBUG, ("http_set_ssi_handler\n"));
+
+  LWIP_ASSERT("no ssi_handler given", ssi_handler != NULL);
+  g_pfnSSIHandler = ssi_handler;
+
+#if LWIP_HTTPD_SSI_RAW
+  LWIP_UNUSED_ARG(tags);
+  LWIP_UNUSED_ARG(num_tags);
+#else /* LWIP_HTTPD_SSI_RAW */
+  LWIP_ASSERT("no tags given", tags != NULL);
+  LWIP_ASSERT("invalid number of tags", num_tags > 0);
+
+  g_ppcTags = tags;
+  g_iNumTags = num_tags;
+#endif /* !LWIP_HTTPD_SSI_RAW */
+}
+#endif /* LWIP_HTTPD_SSI */
+
+#if LWIP_HTTPD_CGI
+/**
+ * Set an array of CGI filenames/handler functions
+ *
+ * @param cgis an array of CGI filenames/handler functions
+ * @param num_handlers number of elements in the 'cgis' array
+ */
+void
+http_set_cgi_handlers(const tCGI *cgis, int num_handlers)
+{
+  LWIP_ASSERT("no cgis given", cgis != NULL);
+  LWIP_ASSERT("invalid number of handlers", num_handlers > 0);
+
+  g_pCGIs = cgis;
+  g_iNumCGIs = num_handlers;
+}
+#endif /* LWIP_HTTPD_CGI */
 
 #endif /* LWIP_TCP && LWIP_CALLBACK_API */

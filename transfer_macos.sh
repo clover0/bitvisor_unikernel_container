@@ -44,7 +44,6 @@ function main() {
   # cp ./boot/uefi-loader/loadvmm.efi /Volumes/NO\ NAME/EFI/BOOT/BOOTX64.EFI
   # cp ./bitvisor.elf /Volumes/NO\ NAME/ /EFI/BOOT/BITVISOR.ELF
   
-  cp ./test.c /tmp/mnt/tools
   sync -f /tmp/mnt/EFI/BOOT/BOOTX64.EFI
   diskutil unmount /tmp/mnt 
   rmdir /tmp/mnt

@@ -38,9 +38,6 @@ objs-1 += lwip-$(LWIP_VERSION)/src/api/netdb.o
 objs-1 += lwip-$(LWIP_VERSION)/src/api/netifapi.o
 objs-1 += lwip-$(LWIP_VERSION)/src/api/sockets.o
 objs-1 += lwip-$(LWIP_VERSION)/src/api/tcpip.o
-objs-1 += lwip-$(LWIP_VERSION)/src/apps/httpd/fs.o
-# objs-1 += lwip-$(LWIP_VERSION)/src/apps/httpd/fsdata.o
-objs-1 += lwip-$(LWIP_VERSION)/src/apps/httpd/httpd.o
 
 objs-1 += ip_sys.o arch/sys_arch.o
 objs-1 += ip_main.o net_main.o

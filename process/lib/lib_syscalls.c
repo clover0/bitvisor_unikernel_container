@@ -45,7 +45,6 @@ typedef unsigned long ulong;
 #define SYS_MSGUNREGISTER	12
 #define SYS_EXITPROCESS		13
 #define SYS_SETLIMIT		14
-#define SYS_IOPL			15
 
 #define BV_YIELD			16
 #define BV_NET_WRITE		17
@@ -201,15 +200,6 @@ setlimit (int stacksize, int maxstacksize)
 	ulong tmp;
 
 	DOSYSCALL2 (SYS_SETLIMIT, stacksize, maxstacksize, tmp);
-	return (int)tmp;
-}
-
-int 
-iopl (int level)
-{
-	ulong tmp;
-
-	DOSYSCALL1 (SYS_IOPL, level, tmp);
 	return (int)tmp;
 }
 

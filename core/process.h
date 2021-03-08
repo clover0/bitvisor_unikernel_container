@@ -52,6 +52,5 @@ ulong sys_newprocess (ulong ip, ulong sp, ulong num, ulong si, ulong di);
 ulong sys_msgsendbuf (ulong ip, ulong sp, ulong num, ulong si, ulong di);
 ulong sys_msgunregister (ulong ip, ulong sp, ulong num, ulong si, ulong di);
 ulong sys_exitprocess (ulong ip, ulong sp, ulong num, ulong si, ulong di);
-ulong sys_iopl (ulong ip, ulong sp, ulong num, ulong si, ulong di);
 
 #endif

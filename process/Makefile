@@ -31,4 +31,3 @@ vpn-objs = vpn.o
 vpn-libs = vpn/lib/$(outa) crypto/$(outa)
 echoctl-objs = echoctl.o
 monitor-objs = monitor.o
-hello-objs = hello.o

@@ -1144,12 +1144,6 @@ iopl (int level)
 
 }
 
-ulong
-sys_iopl (ulong ip, ulong sp, ulong num, ulong si, ulong di)
-{
-	return _iopl((int)si);
-}
-
 static int
 yield(void){
 	schedule();
@@ -1234,7 +1228,7 @@ static syscall_func_t syscall_table[NUM_OF_SYSCALLS] = {
 	sys_msgunregister,
 	sys_exitprocess,
 	sys_setlimit,
-	sys_iopl,            /* 15 */
+	NULL,            /* 15 */
 	bv_yield,
 	bv_net_write,
 	bv_net_read,

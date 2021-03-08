@@ -55,6 +55,7 @@ static void new_container() {
 static void
 unikernel_init(void) {
 	int d1, ukld;
+	int container_num = 1;
 
 	ukld = msgregister("ukl", ukl_kernel_msghandler);
 	if (ukld < 0)
@@ -62,16 +63,9 @@ unikernel_init(void) {
 	INFO("registered ukl handler\n");
 
 	INFO("new container\n");
-	new_container();
-	// new_container();
-	// new_container();
-	// new_container();
-	// new_container();//5
-	// new_container();
-	// new_container();
-	// new_container();
-	// new_container();
-	// new_container();//10
+	for (int i = 0;i < container_num; i++)
+		new_container();
+
 	INFO("containers started \n");
 
 	d1 = msgopen("ttyout");
