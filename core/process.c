@@ -45,6 +45,8 @@
 #include "spinlock.h"
 #include "string.h"
 #include "types.h"
+#include "container.h"
+#include "time.h"
 
 #define NUM_OF_SYSCALLS 32
 #define NAMELEN 16
@@ -80,6 +82,10 @@ static struct process_data process[NUM_OF_PID];
 static spinlock_t process_lock;
 static bool process_initialized = false;
 
+int getpid(void){
+	return currentcpu->pid;
+}
+
 static bool
 is_range_valid (ulong addr, u32 len)
 {
@@ -97,6 +103,7 @@ is_range_valid (ulong addr, u32 len)
 static ulong
 sys_nop (ulong ip, ulong sp, ulong num, ulong si, ulong di)
 {
+	printf("do sys nop!\n");
 	return 0;
 }
 
@@ -322,6 +329,74 @@ found:
 						false);
 #endif
 	process[pid].msgdsc[0].func = (void *)rip;
+	mm_process_switch (mm_phys);
+	spinlock_unlock (&process_lock);
+	return _msgopen_2 (frompid, pid, gen, 0);
+}
+
+static int
+process_new2 (int frompid, void *bin, int stacksize)
+{
+	int pid, gen;
+	u64 phys;
+	ulong rip;
+	phys_t mm_phys ;
+
+	spinlock_lock (&process_lock);
+	for (pid = 1; pid < NUM_OF_PID; pid++) {
+		if (!process[pid].valid)
+			goto found;
+	}
+err:
+	spinlock_unlock (&process_lock);
+	return -1;
+found:
+	if (mm_process_alloc (&phys) < 0) /* alloc page directories and init */
+		goto err;
+	process[pid].mm_phys = phys;
+	process[pid].running = 0;
+	process[pid].exitflag = false;
+	process[pid].setlimit = false;
+	process[pid].stacksize = PAGESIZE * 1024;
+	if (stacksize > PAGESIZE)
+		process[pid].stacksize = stacksize;
+	gen = ++process[pid].gen;
+	process[pid].valid = true;
+	clearmsgdsc (process[pid].msgdsc);
+	mm_phys = mm_process_switch (phys);
+	if (!(rip = process_load (bin))) { /* load a program */
+		printf ("process_load failed.\n");
+		process[pid].valid = false;
+		pid = 0;
+	}
+
+	/* for system calls */
+#ifdef __x86_64__
+#ifdef USE_SYSCALL64
+	mm_process_map_shared_physpage (0x3FFFF000,
+					sym_to_phys (processuser_syscall),
+					false);
+#else
+	mm_process_map_shared_physpage (0x3FFFF000,
+					sym_to_phys (processuser_callgate64),
+					false);
+#endif
+#else
+	if (sysenter_available ())
+		mm_process_map_shared_physpage (0x3FFFF000,
+						sym_to_phys
+						(processuser_sysenter),
+						false);
+	else
+		mm_process_map_shared_physpage (0x3FFFF000,
+						sym_to_phys
+						(processuser_no_sysenter),
+						false);
+#endif
+	process[pid].msgdsc[0].func = (void *)rip;
+	// alloc for TLS
+	mm_process_map_alloc (0, PAGESIZE * 1000);
+	memset ((void *)0x0, 0, PAGESIZE * 1000);
 	mm_process_switch (mm_phys);
 	spinlock_unlock (&process_lock);
 	return _msgopen_2 (frompid, pid, gen, 0);
@@ -818,10 +893,29 @@ _newprocess (int frompid, char *name)
 	return process_new (frompid, bin, stacksize);
 }
 
+static int
+_newprocess2 (int frompid, char *name)
+{
+	void *bin = NULL;
+	int stacksize = 0;
+
+	if (!bin)
+		bin = _builtin_find (name, &stacksize);
+	if (!bin)
+		return -1;
+	return process_new2 (frompid, bin, stacksize);
+}
+
 int
 newprocess (char *name)
 {
 	return _newprocess (0, name);
+}
+
+int
+newprocess2 (char *name)
+{
+	return _newprocess2 (0, name);
 }
 
 /* si=name */
@@ -997,6 +1091,66 @@ ret:
 		return 0;
 }
 
+static int
+yield(void){
+	schedule();
+	return 0;
+}
+
+ulong
+bv_yield (ulong ip, ulong sp, ulong num, ulong si, ulong di)
+{
+	return yield();
+}
+
+static int
+_net_write(char *buf, int size)
+{
+	containernet_write(buf, size);
+
+	return size;
+}
+
+static unsigned int
+_net_read(char *buf, unsigned int size)
+{
+	unsigned int ret_size = 0;
+	
+	containernet_read(buf, size, &ret_size);
+
+	return ret_size;
+}
+
+ulong
+bv_net_write (ulong ip, ulong sp, ulong num, ulong si, ulong di)
+{	
+	char *buf = (char *)si;
+	int size = (int) di;
+
+	return _net_write(buf, size);
+}
+
+ulong
+bv_net_read (ulong ip, ulong sp, ulong num, ulong si, ulong di)
+{
+	char *buf = (char *)si;
+	int size = (int) di;
+
+	return _net_read(buf, size);
+}
+
+static unsigned long
+_get_time()
+{
+	return (unsigned long long)get_cpu_time();
+}
+
+ulong
+bv_get_time (ulong ip, ulong sp, ulong num, ulong si, ulong di)
+{
+	return _get_time();
+}
+
 static syscall_func_t syscall_table[NUM_OF_SYSCALLS] = {
 	NULL,			/* 0 */
 	sys_nop,
@@ -1013,6 +1167,13 @@ static syscall_func_t syscall_table[NUM_OF_SYSCALLS] = {
 	sys_msgunregister,
 	sys_exitprocess,
 	sys_setlimit,
+	NULL,            /* 15 */
+	bv_yield,
+	bv_net_write,
+	bv_net_read,
+	NULL, // bv_block_write,
+	NULL, // bv_block_read,
+	bv_get_time,
 };
 
 __attribute__ ((regparm (1))) void

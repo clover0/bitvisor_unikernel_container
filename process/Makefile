@@ -1,6 +1,6 @@
 CFLAGS += -Iprocess/lib
 
-bins-1 += debug help init log panic recvexample sendexample sendint
+bins-1 += debug helpinit log panic recvexample sendexample sendint hello
 bins-1 += serialtest shell
 bins-$(CONFIG_IDMAN) += idman
 bins-$(CONFIG_STORAGE) += storage
@@ -8,6 +8,10 @@ bins-$(CONFIG_VPN) += vpn
 asubdirs-1 += lib
 bins-$(CONFIG_IP) += echoctl
 bins-$(CONFIG_PCI_MONITOR) += monitor
+
+includeosbins_ = includeos
+
+unikernelbins =
 
 debug-objs = debug.o
 help-objs = help.o

@@ -21,6 +21,7 @@ subdirs-$(CONFIG_STORAGE_IO) += storage_io
 subdirs-$(CONFIG_VPN) += vpn
 subdirs-$(CONFIG_IDMAN) += idman
 subdirs-1 += net
+subdirs-1 += unikernel
 subdirs-$(CONFIG_IP) += ip
 asubdirs-$(CONFIG_CRYPTO) += crypto
 psubdirs-1 += process
@@ -30,6 +31,7 @@ process-depends-$(CONFIG_IDMAN) += $(dir)idman/$(outo_p)
 process-depends-$(CONFIG_STORAGE) += $(dir)storage/$(outo_p)
 process-depends-$(CONFIG_STORAGE_IO) += $(dir)storage_io/$(outo_p)
 process-depends-$(CONFIG_VPN) += $(dir)vpn/$(outo_p)
+process-depends-1 += $(dir)unikernel/$(outo_p)
 
 $(dir)$(elf) : $(defouto) $(dir)$(lds)
 	$(V-info) LD $(dir)$(elf)

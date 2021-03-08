@@ -141,12 +141,14 @@ net_ip_init (void *handle, void *phys_handle, struct nicfunc *phys_func,
 	return true;
 }
 
+// ゲストが送信するとき(ゲストから受信した)
 static void
 net_ip_virt_recv (void *handle, unsigned int num_packets, void **packets,
 		  unsigned int *packet_sizes, void *param, long *premap)
 {
 	struct net_ip_data *p = param;
 
+	// ippassであれば
 	if (p->pass)
 		p->phys_func->send (p->phys_handle, num_packets, packets,
 				    packet_sizes, true);
@@ -183,13 +185,15 @@ net_main_input_queue (struct net_ip_data *p, void **packets,
 	}
 }
 
+// 物理NICがパケットを受信したときのコールバック関数
 static void
 net_ip_phys_recv (void *handle, unsigned int num_packets, void **packets,
 		  unsigned int *packet_sizes, void *param, long *premap)
 {
 	struct net_ip_data *p = param;
 
-	if (p->pass)
+	// ippassの場合
+	if (p->pass) // ゲスト側へパケットを送る
 		p->virt_func->send (p->virt_handle, num_packets, packets,
 				    packet_sizes, true);
 	if (p->input_ok)

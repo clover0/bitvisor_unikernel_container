@@ -402,6 +402,7 @@ vt__vmcs_init (void)
 		     (VMCS_PIN_BASED_VMEXEC_CTL_EXINTEXIT_BIT |
 		      VMCS_PIN_BASED_VMEXEC_CTL_NMIEXIT_BIT |
 		      VMCS_PIN_BASED_VMEXEC_CTL_VIRTNMIS_BIT |
+			//   VMCS_PIN_BASED_VMEXEC_CTL_PREEMPTION_TIMER_BIT |
 		      pinbased_ctls_or) & pinbased_ctls_and);
 	asm_vmwrite (VMCS_PROC_BASED_VMEXEC_CTL,
 		     (/* XXX: VMCS_PROC_BASED_VMEXEC_CTL_HLTEXIT_BIT */0 |
@@ -418,6 +419,7 @@ vt__vmcs_init (void)
 	asm_vmwrite (VMCS_PAGEFAULT_ERRCODE_MATCH, 0);
 	asm_vmwrite (VMCS_CR3_TARGET_COUNT, 0);
 	asm_vmwrite (VMCS_VMEXIT_CTL, (exit_ctls_or & exit_ctls_and) |
+			// exitctl64 | exitctl_efer | VMCS_VMEXIT_CTL_SAVE_PREEMPT_TIMER_VAL_BIT);
 		     exitctl64 | exitctl_efer);
 	asm_vmwrite (VMCS_VMEXIT_MSR_STORE_COUNT, 0);
 	asm_vmwrite (VMCS_VMEXIT_MSR_LOAD_COUNT, 0);
@@ -453,6 +455,7 @@ vt__vmcs_init (void)
 	asm_vmwrite (VMCS_GUEST_ACTIVITY_STATE,
 		     VMCS_GUEST_ACTIVITY_STATE_ACTIVE);
 	asm_vmwrite (VMCS_GUEST_IA32_SYSENTER_CS, sysenter_cs);
+	// asm_vmwrite (VMCS_GUEST_PREEMPTION_TIMER_VALUE, VMCS_GUEST_PREEMPTION_TIMER_VALUE);
 	/* 32-Bit Host-State Field */
 	asm_vmwrite (VMCS_HOST_IA32_SYSENTER_CS, sysenter_cs);
 	/* Natural-Width Control Fields */

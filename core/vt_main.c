@@ -1039,6 +1039,11 @@ do_vmresume (void)
 }
 
 static void
+do_reset_premept_timer (void){
+	asm_vmwrite(VMCS_GUEST_PREEMPTION_TIMER_VALUE, VMCS_PREEMPTION_TIME_VALUE);
+}
+
+static void
 vt__exit_reason (void)
 {
 	ulong exit_reason;
@@ -1134,6 +1139,9 @@ vt__exit_reason (void)
 	case EXIT_REASON_VMRESUME:
 		do_vmresume ();
 		break;
+	case EXIT_REASON_VMX_PREEMPT_TIMER:
+		do_reset_premept_timer();
+		break;
 	default:
 		printf ("Fatal error: handler not implemented.\n");
 		printexitreason (exit_reason);
@@ -1227,6 +1235,7 @@ vt__halt (void)
 	asm_vmwrite (VMCS_GUEST_DS_LIMIT, ds.limit);
 	asm_vmwrite (VMCS_GUEST_FS_LIMIT, fs.limit);
 	asm_vmwrite (VMCS_GUEST_GS_LIMIT, gs.limit);
+	// asm_vmwrite (VMCS_GUEST_PREEMPTION_TIMER_VALUE, VMCS_PREEMPTION_TIME_VALUE);
 	asm_vmwrite (VMCS_GUEST_RFLAGS, rflags);
 	vt__event_delivery_check ();
 	vt__exit_reason ();

@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 RUN apt-get -y update \
  && apt-get -y install \
@@ -8,5 +8,7 @@ RUN apt-get -y update \
         gcc
 
 WORKDIR /var/work
+
+USER 1000
 
 CMD /bin/bash

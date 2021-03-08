@@ -1,3 +1,4 @@
+.hg
 *.d
 *.o
 *.bin
@@ -6,18 +7,19 @@
 *.flags
 *.objects
 *.a
-.defconfg
-.config
+*.out
+# .defconfg
+# .config
 *~
 process/process_builtin.s
 bitvisor.elf
 bitvisor.map
-.config*
+# .config*
 .depends
 .flags
 .objects
 .boptions
-defconfig
+# defconfig
 boot/login/conf/bitvisor.conf
 boot/login/initrd/initrd.gz
 boot/login/linux/linux-*
@@ -39,3 +41,11 @@ boot/uefi-loader/loadvmm.efi
 work
 tools/dbgsh-uefi/*.efi
 loadvmm.efi
+bootloader
+bootloaderusb
+process/includeos
+
+compile_commands.json
+build
+.history
+*.dump

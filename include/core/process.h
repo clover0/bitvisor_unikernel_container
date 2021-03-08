@@ -65,9 +65,11 @@ int msgclose (int desc);
 int msgsendint (int desc, int data);
 int msgsenddesc (int desc, int data);
 int newprocess (char *name);
+int newprocess2 (char *name);
 int msgsendbuf (int desc, int data, struct msgbuf *buf, int bufcnt);
 int msgunregister (int desc);
 void exitprocess (int retval);
 long msgpremapbuf (int desc, struct msgbuf *buf);
+int getpid(void);
 
 #endif

@@ -33,11 +33,11 @@
 #include <core/process.h>
 #include "types.h"
 
-#define NUM_OF_PID		32
-#define NUM_OF_MSGDSC		32
+#define NUM_OF_PID		64
+#define NUM_OF_MSGDSC		64
 #define NUM_OF_MSGDSCRECV	8
 #define PROCESS_NAMELEN		32
-#define MAXNUM_OF_MSGBUF	32
+#define MAXNUM_OF_MSGBUF	64
 
 bool own_process64_msrs (void (*func) (void *data), void *data);
 void process_kill (bool (*func) (void *data), void *data);

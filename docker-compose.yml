@@ -1,9 +1,11 @@
 version: "3.4"
 services:
-  ubuntu1604:
+  ubuntu1804:
     build:
       context: .
       dockerfile: Dockerfile
     tty: true
     volumes:
       - .:/var/work
+      - /etc/group:/etc/group:ro
+      - /etc/passwd:/etc/passwd:ro

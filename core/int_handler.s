@@ -40,7 +40,7 @@
 	# 64bit
 	.align	8
 int_handler:
-	push	%gs
+	push	%gs # gs
 	push	$SEG_SEL_PCPU64
 	pop	%gs
 	cmpq	$0,%gs:gs_inthandling
@@ -50,10 +50,10 @@ int_handler:
 	mov	%gs:gs_inthandling,%rsp
 	ret			# return
 1:
-	push	$0
-	push	$0
-	push	$0
-	push	$0
+	push	$0 # ds
+	push	$0 # ss
+	push	$0 # cs
+	push	$0 # es
 	push	%fs
 	push	%rax
 	mov	%ds,%rax
